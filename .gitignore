@@ -10,3 +10,4 @@ database/*.json
 database/*.db
 database/*.db.pre_sync
 settings.json
+NO_UPLOAD/
