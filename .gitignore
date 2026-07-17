@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+app.log
+data.txt
+
+# Dữ liệu cá nhân / credential — KHÔNG commit
+database/*.json
+database/*.db
+database/*.db.pre_sync
+settings.json
