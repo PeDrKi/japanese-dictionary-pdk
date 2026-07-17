@@ -8,8 +8,6 @@
 - **Ôn tập** — Flashcard, Quiz trắc nghiệm, Luyện gõ (typing practice), lịch ôn tập theo SRS (spaced repetition).
 - **Nhập liệu nhanh** — tra cứu tự động qua Jisho.org, gợi ý dịch Anh→Việt, dán nhiều dòng để tạo hàng loạt thẻ, import/export CSV, export sang Anki (.apkg).
 - **Bàn phím ảo** hiragana/katakana (bật bằng F8), gõ được vào bất kỳ ô nhập liệu nào đang mở, kể cả trong hộp thoại con.
-- **Thống kê** tiến độ học, tìm kiếm/lọc nâng cao, phân trang tùy chỉnh.
-- **Backup thủ công** và **đồng bộ 2 chiều với Google Drive** (tùy chọn).
 
 ## Cài đặt
 
@@ -53,7 +51,3 @@ Tính năng Sync cần file OAuth Client Secret riêng của bạn (không đi k
 4. Mở app → **☁️ Sync** → đăng nhập Google lần đầu qua trình duyệt.
 
 Token đăng nhập (`database/drive_token.json`) và file database cá nhân (`database/japanese.db`) đã được `.gitignore` loại trừ — không bị commit lên GitHub.
-
-## Giấy phép
-
-Chưa có file LICENSE — nghĩa là mặc định giữ toàn quyền tác giả. Mã nguồn công khai để tham khảo, nhưng không cấp phép cho việc sao chép, sửa đổi, hay phân phối lại nếu chưa có sự đồng ý của tác giả.
