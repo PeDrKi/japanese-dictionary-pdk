@@ -101,6 +101,10 @@ def _find_marker(widget, attr, max_levels=8):
     return None
 
 
+POOL_LIMIT = 60          # cap how many card chips get built at once
+SEARCH_DEBOUNCE_MS = 300  # wait for typing to pause before re-querying/rebuilding
+
+
 class RadicalView(ctk.CTkFrame):
     def __init__(self, master, card_service, radical_service, **kwargs):
         super().__init__(master, corner_radius=0, **kwargs)
@@ -108,6 +112,7 @@ class RadicalView(ctk.CTkFrame):
         self._radical_service  = radical_service
         self._selected_id      = None
         self._search_var       = ctk.StringVar()
+        self._search_after_id  = None
         self._build()
 
     # ── layout ───────────────────────────────────────────────────────────────
@@ -156,7 +161,7 @@ class RadicalView(ctk.CTkFrame):
         entry = ctk.CTkEntry(search_row, textvariable=self._search_var,
                              placeholder_text="🔍 Tìm...", width=180)
         entry.pack(side="right")
-        self._search_var.trace_add("write", lambda *_: self._render_pool())
+        self._search_var.trace_add("write", lambda *_: self._on_search_changed())
 
         self._pool_scroll = ctk.CTkScrollableFrame(right, fg_color="transparent")
         self._pool_scroll.grid(row=3, column=0, sticky="nsew", padx=14, pady=(0, 14))
@@ -340,17 +345,34 @@ class RadicalView(ctk.CTkFrame):
         canvas.bind("<Button-1>", on_click)
         parent.after(30, redraw)
 
+    def _on_search_changed(self):
+        """Debounce: wait for typing to pause before re-querying and
+        rebuilding every chip — with a few thousand cards, doing that on
+        every single keystroke would visibly stutter."""
+        if self._search_after_id is not None:
+            self.after_cancel(self._search_after_id)
+        self._search_after_id = self.after(SEARCH_DEBOUNCE_MS, self._render_pool)
+
     def _render_pool(self):
+        self._search_after_id = None
         for child in self._pool_scroll.winfo_children():
             child.destroy()
 
         query = self._search_var.get().strip()
-        cards = self._card_service.list_cards(search=query) if query else self._card_service.list_cards()
+        filters = {"search": query} if query else {}
+        total = self._card_service.count(**filters)
+        cards = self._card_service.list_cards(**filters, limit=POOL_LIMIT)
 
         if not cards:
             ctk.CTkLabel(self._pool_scroll, text="Không có thẻ nào.",
                          font=ctk.CTkFont(size=11), text_color=("gray50", "gray55")).pack(pady=20)
             return
+
+        if total > len(cards):
+            ctk.CTkLabel(self._pool_scroll,
+                         text=f"Đang hiện {len(cards)}/{total} thẻ — gõ để tìm kiếm chính xác hơn.",
+                         font=ctk.CTkFont(size=10), text_color=("gray50", "gray55"),
+                         anchor="w").pack(fill="x", pady=(0, 4))
 
         wrap = ctk.CTkFrame(self._pool_scroll, fg_color="transparent")
         wrap.pack(fill="both", expand=True)

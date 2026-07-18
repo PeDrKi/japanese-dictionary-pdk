@@ -238,6 +238,9 @@ class DriveSync:
             self._merge_cards(local_conn, remote_conn, stats)
             self._merge_decks(local_conn, remote_conn, stats)
             self._merge_deck_cards(local_conn, remote_conn)
+            self._merge_radicals(local_conn, remote_conn, stats)
+            self._merge_radical_cards(local_conn, remote_conn)
+            self._merge_user_decompositions(local_conn, remote_conn, stats)
             self._merge_study_sessions(local_conn, remote_conn, stats)
             local_conn.commit()
         except Exception:
@@ -314,6 +317,79 @@ class DriveSync:
                 (local_deck_id, row["card_id"])
             )
 
+    def _merge_radicals(self, local, remote, stats):
+        if not self._table_exists(remote, "radicals"):
+            return  # remote DB predates the "🧩 Bộ thủ" feature — nothing to pull
+        remote_radicals = {r["character"]: dict(r)
+                           for r in remote.execute("SELECT * FROM radicals")}
+        local_radicals  = {r["character"]: dict(r)
+                           for r in local.execute("SELECT * FROM radicals")}
+
+        for character, rr in remote_radicals.items():
+            if character not in local_radicals:
+                local.execute(
+                    "INSERT OR IGNORE INTO radicals "
+                    "(character, name, color, sort_order, created_at) "
+                    "VALUES (?, ?, ?, ?, ?)",
+                    (rr["character"], rr.get("name"), rr.get("color"),
+                     rr.get("sort_order", 0), rr.get("created_at"))
+                )
+                stats["pulled"] += 1
+
+    def _merge_radical_cards(self, local, remote):
+        if not self._table_exists(remote, "radical_cards"):
+            return
+        remote_radicals = {r["id"]: r["character"]
+                           for r in remote.execute("SELECT id, character FROM radicals")}
+        local_radicals  = {r["character"]: r["id"]
+                           for r in local.execute("SELECT character, id FROM radicals")}
+
+        for row in remote.execute("SELECT radical_id, card_id FROM radical_cards"):
+            character = remote_radicals.get(row["radical_id"])
+            if not character:
+                continue
+            local_radical_id = local_radicals.get(character)
+            if not local_radical_id:
+                continue
+            if not local.execute(
+                    "SELECT 1 FROM cards WHERE id=?", (row["card_id"],)).fetchone():
+                continue
+            local.execute(
+                "INSERT OR IGNORE INTO radical_cards (radical_id, card_id) VALUES (?,?)",
+                (local_radical_id, row["card_id"])
+            )
+
+    def _merge_user_decompositions(self, local, remote, stats):
+        if not self._table_exists(remote, "user_decompositions"):
+            return  # remote DB predates the "✏️ Sửa bộ phận" feature
+        remote_rows = {r["character"]: dict(r)
+                      for r in remote.execute("SELECT * FROM user_decompositions")}
+        local_rows  = {r["character"]: dict(r)
+                      for r in local.execute("SELECT * FROM user_decompositions")}
+
+        for character, rr in remote_rows.items():
+            if character not in local_rows:
+                local.execute(
+                    "INSERT INTO user_decompositions (character, parts, updated_at) "
+                    "VALUES (?,?,?)",
+                    (rr["character"], rr["parts"], rr.get("updated_at"))
+                )
+                stats["pulled"] += 1
+            else:
+                lr   = local_rows[character]
+                r_ts = self._parse_ts(rr.get("updated_at"))
+                l_ts = self._parse_ts(lr.get("updated_at"))
+                if r_ts > l_ts:
+                    local.execute(
+                        "UPDATE user_decompositions SET parts=?, updated_at=? WHERE character=?",
+                        (rr["parts"], rr.get("updated_at"), character)
+                    )
+                    stats["conflicts_resolved"] += 1
+                elif l_ts > r_ts:
+                    stats["pushed"] += 1
+                else:
+                    stats["skipped"] += 1
+
     def _merge_study_sessions(self, local, remote, stats):
         local_set = set(
             (r["card_id"], r["result"], r["studied_at"])
@@ -364,6 +440,18 @@ class DriveSync:
         )
 
     # ── Utilities ─────────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _table_exists(conn, table_name: str) -> bool:
+        """True if `table_name` exists in `conn`'s schema. Guards the
+        radicals/radical_cards/user_decompositions merges against an older
+        remote DB that predates those features — nothing to pull from a
+        table that was never created there."""
+        row = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+            (table_name,)
+        ).fetchone()
+        return row is not None
 
     @staticmethod
     def _parse_ts(ts_str) -> datetime:
