@@ -19,10 +19,13 @@ from application.stats_service import StatsService
 from application.card_service import CardService
 from application.deck_service import DeckService
 from application.study_service import StudyService
+from application.decomposition_service import DecompositionService
+from application.radical_service import RadicalService
 from infrastructure.db.sqlite_repositories import (
     SqliteStatsRepository, SqliteCardRepository, SqliteDeckRepository,
-    SqliteStudySessionRepository,
+    SqliteStudySessionRepository, SqliteRadicalRepository, SqliteUserDecompositionRepository,
 )
+from infrastructure.kanji_ids import FileKanjiIdsRepository
 
 
 def main():
@@ -50,13 +53,17 @@ def main():
         sys.exit(1)
 
     # ── Composition root: wire concrete implementations here, nowhere else ──
-    stats_service = StatsService(SqliteStatsRepository())
-    card_service  = CardService(SqliteCardRepository())
-    deck_service  = DeckService(SqliteDeckRepository())
-    study_service = StudyService(SqliteStudySessionRepository())
+    stats_service         = StatsService(SqliteStatsRepository())
+    card_service          = CardService(SqliteCardRepository())
+    deck_service          = DeckService(SqliteDeckRepository())
+    study_service         = StudyService(SqliteStudySessionRepository())
+    decomposition_service = DecompositionService(FileKanjiIdsRepository(), SqliteUserDecompositionRepository())
+    radical_service        = RadicalService(SqliteRadicalRepository())
 
     app = App(stats_service=stats_service, card_service=card_service,
-              deck_service=deck_service, study_service=study_service)
+              deck_service=deck_service, study_service=study_service,
+              decomposition_service=decomposition_service,
+              radical_service=radical_service)
     app.mainloop()
     logger.info("App closed.")
 

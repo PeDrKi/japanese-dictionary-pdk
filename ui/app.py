@@ -6,6 +6,7 @@ from ui.review_today import ReviewTodayDialog
 from ui.tooltip import Tooltip
 from ui.table_view import TableView
 from ui.stats_view import StatsView
+from ui.radical_view import RadicalView
 from ui.flashcard import FlashcardLauncher
 from ui.quiz import QuizLauncher
 from ui.backup_view import BackupView
@@ -17,10 +18,13 @@ from application.stats_service import StatsService
 from application.card_service import CardService
 from application.deck_service import DeckService
 from application.study_service import StudyService
+from application.decomposition_service import DecompositionService
+from application.radical_service import RadicalService
 from infrastructure.db.sqlite_repositories import (
     SqliteStatsRepository, SqliteCardRepository, SqliteDeckRepository,
-    SqliteStudySessionRepository,
+    SqliteStudySessionRepository, SqliteRadicalRepository, SqliteUserDecompositionRepository,
 )
+from infrastructure.kanji_ids import FileKanjiIdsRepository
 from constants import (
     KB_NEW_CARD, KB_FOCUS_SEARCH, KB_REFRESH, KB_ESCAPE, KB_TOGGLE_KEYBOARD,
     SETTING_LAST_TAB, SETTING_THEME,
@@ -30,7 +34,8 @@ logger = logging.getLogger(__name__)
 
 
 class App(ctk.CTk):
-    def __init__(self, stats_service=None, card_service=None, deck_service=None, study_service=None):
+    def __init__(self, stats_service=None, card_service=None, deck_service=None, study_service=None,
+                 decomposition_service=None, radical_service=None):
         super().__init__()
 
         # ── Composition root (Stage 4 of the clean-architecture migration) ──
@@ -41,6 +46,14 @@ class App(ctk.CTk):
         self.card_service  = card_service  if card_service  is not None else CardService(SqliteCardRepository())
         self.deck_service  = deck_service  if deck_service  is not None else DeckService(SqliteDeckRepository())
         self.study_service = study_service if study_service is not None else StudyService(SqliteStudySessionRepository())
+        # File-backed, not SQLite — no DB needed for an offline dataset lookup.
+        # user_overrides (SQLite) lets the person override/replace that
+        # bundled data per-character — see ui/kanji_decomposition_dialog.py's
+        # "✏️ Sửa" button.
+        self.decomposition_service = (decomposition_service if decomposition_service is not None
+                                       else DecompositionService(FileKanjiIdsRepository(),
+                                                                  SqliteUserDecompositionRepository()))
+        self.radical_service = radical_service if radical_service is not None else RadicalService(SqliteRadicalRepository())
 
         self._vk = None   # VirtualKeyboard, created lazily on first toggle
 
@@ -121,86 +134,91 @@ class App(ctk.CTk):
         self.grid_columnconfigure(1, weight=1)
 
         # ── Top nav bar ──
-        navbar = ctk.CTkFrame(self, corner_radius=0, height=46,
+        navbar = ctk.CTkFrame(self, corner_radius=0, height=42,
                                fg_color=("gray88", "gray15"))
         navbar.grid(row=0, column=0, columnspan=2, sticky="ew")
         navbar.grid_propagate(False)
-        # Cột 9 = spacer đẩy theme btn về bên phải
-        navbar.grid_columnconfigure(9, weight=1)
+        # Cột 10 = spacer đẩy theme btn về bên phải
+        navbar.grid_columnconfigure(10, weight=1)
 
-        ctk.CTkLabel(navbar, text="🇯🇵  日本語",
-                     font=ctk.CTkFont(size=15, weight="bold"),
-                     anchor="w").grid(row=0, column=0, padx=(16, 24), pady=10)
+        ctk.CTkLabel(navbar, text="🇯🇵 日本語",
+                     font=ctk.CTkFont(size=12, weight="bold"),
+                     anchor="w").grid(row=0, column=0, padx=(10, 10), pady=6)
 
-        tab_cfg  = dict(width=120, height=32, corner_radius=6)
+        tab_cfg  = dict(width=72, height=26, corner_radius=5, font=ctk.CTkFont(size=11))
         inactive = dict(fg_color=("gray75", "gray35"), text_color=("gray10", "gray90"))
 
         self._tab_table = ctk.CTkButton(
-            navbar, text="🗂️  Thư viện", **tab_cfg,
+            navbar, text="🗂️ Thư viện", **tab_cfg,
             command=lambda: self._switch_tab("table"))
-        self._tab_table.grid(row=0, column=1, padx=4, pady=7)
+        self._tab_table.grid(row=0, column=1, padx=1, pady=6)
 
         self._tab_stats = ctk.CTkButton(
-            navbar, text="📊  Thống kê", **tab_cfg, **inactive,
+            navbar, text="📊 Thống kê", **tab_cfg, **inactive,
             command=lambda: self._switch_tab("stats"))
-        self._tab_stats.grid(row=0, column=2, padx=4, pady=7)
+        self._tab_stats.grid(row=0, column=2, padx=1, pady=6)
+
+        self._tab_radicals = ctk.CTkButton(
+            navbar, text="🧩 Bộ thủ", **tab_cfg, **inactive,
+            command=lambda: self._switch_tab("radicals"))
+        self._tab_radicals.grid(row=0, column=3, padx=1, pady=6)
 
         review_btn = ctk.CTkButton(
-            navbar, text="🎯  Ôn tập hôm nay", **tab_cfg,
+            navbar, text="🎯 Ôn tập", **tab_cfg,
             fg_color="#E8A33D", hover_color="#C9862A", text_color="white",
             command=self._open_review_today
         )
-        review_btn.grid(row=0, column=3, padx=4, pady=7)
+        review_btn.grid(row=0, column=4, padx=1, pady=6)
         Tooltip(review_btn,
                 "Ôn đúng những thẻ cần ôn lại hôm nay, dựa trên mức độ "
                 "bạn đã nhớ chúng (lặp lại ngắt quãng - SRS).\n"
                 "Thẻ dễ sẽ giãn cách ôn xa hơn, thẻ khó quay lại sớm hơn.")
 
         ctk.CTkButton(
-            navbar, text="🃏  Flashcard", **tab_cfg, **inactive,
+            navbar, text="🃏 Thẻ ghi nhớ", **tab_cfg, **inactive,
             command=self._open_flashcard
-        ).grid(row=0, column=4, padx=4, pady=7)
+        ).grid(row=0, column=5, padx=1, pady=6)
 
         ctk.CTkButton(
-            navbar, text="📝  Quiz", **tab_cfg, **inactive,
+            navbar, text="📝 Quiz", **tab_cfg, **inactive,
             command=self._open_quiz
-        ).grid(row=0, column=5, padx=4, pady=7)
+        ).grid(row=0, column=6, padx=1, pady=6)
 
         ctk.CTkButton(
-            navbar, text="⌨️  Gõ", **tab_cfg, **inactive,
+            navbar, text="⌨️ Gõ", **tab_cfg, **inactive,
             command=self._open_typing
-        ).grid(row=0, column=6, padx=4, pady=7)
+        ).grid(row=0, column=7, padx=1, pady=6)
 
         self._vk_toggle_btn = ctk.CTkButton(
-            navbar, text="🈴  Bàn phím ảo", **tab_cfg, **inactive,
+            navbar, text="🈴 Bàn phím", **tab_cfg, **inactive,
             command=self._toggle_keyboard
         )
-        self._vk_toggle_btn.grid(row=0, column=7, padx=4, pady=7)
+        self._vk_toggle_btn.grid(row=0, column=8, padx=1, pady=6)
         Tooltip(self._vk_toggle_btn,
                 "Bật/tắt bàn phím ảo hiragana/katakana (F8).\n"
                 "Nhấn phím trên bàn phím ảo sẽ gõ vào ô nhập liệu "
                 "bạn vừa chọn — kể cả trong hộp thoại đang mở.")
 
         ctk.CTkButton(
-            navbar, text="💾  Backup", **tab_cfg, **inactive,
+            navbar, text="💾 Backup", **tab_cfg, **inactive,
             command=self._open_backup
-        ).grid(row=0, column=8, padx=4, pady=7)
+        ).grid(row=0, column=9, padx=1, pady=6)
 
         # ── Nút Sync mới ──────────────────────────────────────────────────────
         self._sync_btn = ctk.CTkButton(
-            navbar, text="☁️  Sync", **tab_cfg, **inactive,
+            navbar, text="☁️ Sync", **tab_cfg, **inactive,
             command=self._open_sync
         )
-        self._sync_btn.grid(row=0, column=9, padx=4, pady=7)
+        self._sync_btn.grid(row=0, column=10, padx=1, pady=6)
 
         # Theme toggle (bên phải cùng)
         ctk.CTkButton(
             navbar,
             text="☀️" if ctk.get_appearance_mode() == "Dark" else "🌙",
-            width=34, height=34, corner_radius=17,
+            width=26, height=26, corner_radius=13,
             fg_color="transparent", hover_color=("gray75", "gray35"),
-            font=ctk.CTkFont(size=16), command=self._toggle_theme
-        ).grid(row=0, column=10, padx=(0, 12), pady=6)
+            font=ctk.CTkFont(size=13), command=self._toggle_theme
+        ).grid(row=0, column=11, padx=(2, 8), pady=6)
 
         # ── Sidebar ──
         self.sidebar = Sidebar(self, self.card_service, self.deck_service, self.stats_service,
@@ -208,12 +226,18 @@ class App(ctk.CTk):
         self.sidebar.grid(row=1, column=0, sticky="nsew")
 
         # ── Main content ──
-        self.table = TableView(self, card_service=self.card_service, deck_service=self.deck_service)
+        self.table = TableView(self, card_service=self.card_service, deck_service=self.deck_service,
+                                decomposition_service=self.decomposition_service)
         self.table.grid(row=1, column=1, sticky="nsew")
 
         self.stats = StatsView(self, stats_service=self.stats_service)
         self.stats.grid(row=1, column=1, sticky="nsew")
         self.stats.grid_remove()
+
+        self.radicals = RadicalView(self, card_service=self.card_service,
+                                     radical_service=self.radical_service)
+        self.radicals.grid(row=1, column=1, sticky="nsew")
+        self.radicals.grid_remove()
 
         self.sidebar.activate_default()
         self._current_tab = "table"
@@ -228,19 +252,27 @@ class App(ctk.CTk):
         active   = {}
         inactive = dict(fg_color=("gray75", "gray35"), text_color=("gray10", "gray90"))
 
+        # Hide everything, then show only what the target tab needs — avoids
+        # an N-way if/elif matrix as more tabs get added.
+        self.table.grid_remove()
+        self.stats.grid_remove()
+        self.radicals.grid_remove()
+        self.sidebar.grid_remove()
+        for btn in (self._tab_table, self._tab_stats, self._tab_radicals):
+            btn.configure(**inactive)
+
         if tab == "table":
-            self.stats.grid_remove()
             self.table.grid()
             self.sidebar.grid()
             self._tab_table.configure(**active)
-            self._tab_stats.configure(**inactive)
         elif tab == "stats":
-            self.table.grid_remove()
-            self.sidebar.grid_remove()
             self.stats.grid()
             self.stats.refresh()
-            self._tab_table.configure(**inactive)
             self._tab_stats.configure(**active)
+        elif tab == "radicals":
+            self.radicals.grid()
+            self.radicals.refresh()
+            self._tab_radicals.configure(**active)
 
     # ── Callbacks ─────────────────────────────────────────────────────────────
 
@@ -252,6 +284,7 @@ class App(ctk.CTk):
             self._switch_tab("table") or self.table._focus_search()))
         self.bind(KB_REFRESH, lambda _: (
             self.table.load_cards() if self._current_tab == "table"
+            else self.radicals.refresh() if self._current_tab == "radicals"
             else self.stats.refresh(force=True)))
         # bind_all (not bind): the keyboard is most useful while typing in a
         # child dialog (CardForm, TypingView...), which self.bind wouldn't reach.

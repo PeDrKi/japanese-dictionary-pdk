@@ -47,10 +47,11 @@ COLUMNS = [
 
 
 class TableView(ctk.CTkFrame):
-    def __init__(self, master, card_service, deck_service, **kwargs):
+    def __init__(self, master, card_service, deck_service, decomposition_service=None, **kwargs):
         super().__init__(master, corner_radius=0, **kwargs)
-        self._card_service   = card_service
-        self._deck_service   = deck_service
+        self._card_service          = card_service
+        self._deck_service          = deck_service
+        self._decomposition_service = decomposition_service
         self._filter        = ("all", None)
         self._cards         = []
         self._sort_col      = None
@@ -147,6 +148,7 @@ class TableView(ctk.CTkFrame):
         self._detail = CardDetail(
             self,
             self._deck_service,
+            self._decomposition_service,
             on_edit        = self._edit_card,
             on_delete      = self._delete_card,
             on_toggle_fav  = self._toggle_fav_card,

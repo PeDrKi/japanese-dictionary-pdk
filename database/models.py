@@ -8,6 +8,8 @@ submodules for maintainability:
     _common.py  — connection pooling, DBError, @_db_op decorator
     _cards.py   — card CRUD, search/filter, bulk operations
     _decks.py   — deck CRUD, card-to-deck assignment
+    _radicals.py — radical (bộ thủ) CRUD, card-to-radical assignment
+    _user_decompositions.py — user-defined "chữ gồm những bộ nào" overrides
     _stats.py   — dashboard statistics
     _study.py   — SRS scheduling + study-session logging
 
@@ -52,6 +54,23 @@ from ._decks import (
     update_category,
     delete_category,
 )
+from ._radicals import (
+    get_all_radicals,
+    add_radical,
+    update_radical,
+    delete_radical,
+    reorder_radicals,
+    add_card_to_radical,
+    remove_card_from_radical,
+    get_radicals_for_card,
+    get_cards_for_radical,
+)
+from ._user_decompositions import (
+    get_user_decomposition,
+    set_user_decomposition,
+    delete_user_decomposition,
+    get_all_user_decompositions,
+)
 from ._stats import (
     get_stats,
     get_full_stats,
@@ -77,6 +96,11 @@ __all__ = [
     "get_all_decks", "add_deck", "update_deck", "delete_deck",
     "add_card_to_deck", "remove_card_from_deck", "bulk_add_to_deck", "get_decks_for_card",
     "get_all_categories", "add_category", "update_category", "delete_category",
+    "get_all_radicals", "add_radical", "update_radical", "delete_radical",
+    "reorder_radicals", "add_card_to_radical", "remove_card_from_radical",
+    "get_radicals_for_card", "get_cards_for_radical",
+    "get_user_decomposition", "set_user_decomposition", "delete_user_decomposition",
+    "get_all_user_decompositions",
     "get_stats", "get_full_stats",
     "log_study", "_compute_srs_update",
     "SRS_MAX_INTERVAL_DAYS", "SRS_MIN_EASE", "SRS_MAX_EASE",

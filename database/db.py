@@ -94,6 +94,36 @@ def init_db(seed_sample_data: bool = False):
             UNIQUE(deck_id, card_id)
         );
 
+        -- Bộ thủ (radicals) do người dùng tự quản lý — KHÔNG tự sinh từ
+        -- kanji_decomposition (xem README trong ui/radical_view.py). Người
+        -- dùng tạo bộ, rồi kéo-thả thẻ Kanji/Từ vựng vào từng bộ.
+        CREATE TABLE IF NOT EXISTS radicals (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            character   TEXT NOT NULL UNIQUE,
+            name        TEXT,
+            color       TEXT DEFAULT '#4A90D9',
+            sort_order  INTEGER NOT NULL DEFAULT 0,
+            created_at  DATETIME NOT NULL DEFAULT (datetime('now','localtime'))
+        );
+
+        CREATE TABLE IF NOT EXISTS radical_cards (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            radical_id  INTEGER NOT NULL REFERENCES radicals(id) ON DELETE CASCADE,
+            card_id     INTEGER NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+            added_at    DATETIME NOT NULL DEFAULT (datetime('now','localtime')),
+            UNIQUE(radical_id, card_id)
+        );
+
+        -- Người dùng tự định nghĩa cách tách bộ cho 1 chữ, ĐÈ LÊN dữ liệu
+        -- IDS tự động (infrastructure/kanji_ids.py) cho riêng chữ đó. `parts`
+        -- là chuỗi các ký tự thành phần viết liền nhau, VD "日音" nghĩa là
+        -- 2 phần: 日 và 音 — xem application/decomposition_service.py.
+        CREATE TABLE IF NOT EXISTS user_decompositions (
+            character   TEXT PRIMARY KEY,
+            parts       TEXT NOT NULL,
+            updated_at  DATETIME NOT NULL DEFAULT (datetime('now','localtime'))
+        );
+
         CREATE TABLE IF NOT EXISTS study_sessions (
             id         INTEGER PRIMARY KEY AUTOINCREMENT,
             card_id    INTEGER NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
@@ -110,6 +140,9 @@ def init_db(seed_sample_data: bool = False):
         CREATE INDEX IF NOT EXISTS idx_cards_created    ON cards(created_at DESC);
         CREATE INDEX IF NOT EXISTS idx_dc_deck_id       ON deck_cards(deck_id);
         CREATE INDEX IF NOT EXISTS idx_dc_card_id       ON deck_cards(card_id);
+        CREATE INDEX IF NOT EXISTS idx_radicals_sort    ON radicals(sort_order);
+        CREATE INDEX IF NOT EXISTS idx_rc_radical_id    ON radical_cards(radical_id);
+        CREATE INDEX IF NOT EXISTS idx_rc_card_id       ON radical_cards(card_id);
         CREATE INDEX IF NOT EXISTS idx_ss_card_id       ON study_sessions(card_id);
         CREATE INDEX IF NOT EXISTS idx_ss_studied_at    ON study_sessions(studied_at DESC);
 

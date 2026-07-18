@@ -137,3 +137,63 @@ class StatsRepository(Protocol):
     def get_summary(self) -> dict: ...
 
     def get_full(self) -> dict: ...
+
+
+class KanjiIdsRepository(Protocol):
+    """Ideographic Description Sequence lookup — one character to its raw
+    IDS breakdown string (e.g. "暗" -> "⿰日音"), or None if there's no
+    record for it. Mirrors infrastructure/kanji_ids.py, which reads this
+    from a bundled offline data file (no DB, no network).
+
+    Backs the kanji-decomposition feature (ui/kanji_decomposition_dialog.py
+    via application/decomposition_service.py)."""
+
+    def get_ids(self, character: str) -> Optional[str]: ...
+
+
+class RadicalRepository(Protocol):
+    """User-managed bộ thủ (radical) groups and their card membership.
+    Structurally the same shape as DeckRepository (a named group with a
+    many-to-many link to cards), but radicals also have a user-controlled
+    display order (see reorder — the radical list is drag-to-reorder in
+    the UI) and no categories.
+
+    Unlike domain.kanji_decomposition, nothing here is derived from IDS
+    data — which cards belong to which bộ is entered by the user, via
+    drag-and-drop in ui/radical_view.py."""
+
+    def get_all(self) -> list: ...
+
+    def add(self, character: str, name: str = "", color: str = "#4A90D9") -> int: ...
+
+    def update(self, radical_id: int, character: str, name: str, color: str) -> None: ...
+
+    def delete(self, radical_id: int) -> None: ...
+
+    def reorder(self, ordered_ids: list) -> None: ...
+
+    def add_card(self, radical_id: int, card_id: int) -> None: ...
+
+    def remove_card(self, radical_id: int, card_id: int) -> None: ...
+
+    def get_radicals_for_card(self, card_id: int) -> list: ...
+
+    def get_cards_for_radical(self, radical_id: int) -> list: ...
+
+
+class UserDecompositionRepository(Protocol):
+    """User-defined "chữ này gồm những bộ nào" overrides — takes priority
+    over KanjiIdsRepository's bundled offline dataset for whichever
+    characters the user has defined one for. `parts` is every component
+    character concatenated (e.g. "日音" = 2 parts). Mirrors
+    infrastructure/db/sqlite_repositories.py's SqliteUserDecompositionRepository.
+
+    Consumed by application/decomposition_service.py."""
+
+    def get_parts(self, character: str) -> Optional[str]: ...
+
+    def set_parts(self, character: str, parts: str) -> None: ...
+
+    def delete(self, character: str) -> None: ...
+
+    def get_all(self) -> list: ...

@@ -123,6 +123,53 @@ class SqliteDeckRepository:
         return models.get_decks_for_card(card_id)
 
 
+class SqliteRadicalRepository:
+    """Implements domain.repositories.RadicalRepository."""
+
+    def get_all(self):
+        return models.get_all_radicals()
+
+    def add(self, character, name="", color="#4A90D9"):
+        return models.add_radical(character, name, color)
+
+    def update(self, radical_id, character, name, color):
+        models.update_radical(radical_id, character, name, color)
+
+    def delete(self, radical_id):
+        models.delete_radical(radical_id)
+
+    def reorder(self, ordered_ids):
+        models.reorder_radicals(ordered_ids)
+
+    def add_card(self, radical_id, card_id):
+        models.add_card_to_radical(radical_id, card_id)
+
+    def remove_card(self, radical_id, card_id):
+        models.remove_card_from_radical(radical_id, card_id)
+
+    def get_radicals_for_card(self, card_id):
+        return models.get_radicals_for_card(card_id)
+
+    def get_cards_for_radical(self, radical_id):
+        return models.get_cards_for_radical(radical_id)
+
+
+class SqliteUserDecompositionRepository:
+    """Implements domain.repositories.UserDecompositionRepository."""
+
+    def get_parts(self, character):
+        return models.get_user_decomposition(character)
+
+    def set_parts(self, character, parts):
+        models.set_user_decomposition(character, parts)
+
+    def delete(self, character):
+        models.delete_user_decomposition(character)
+
+    def get_all(self):
+        return models.get_all_user_decompositions()
+
+
 class SqliteStudySessionRepository:
     """Implements domain.repositories.StudySessionRepository."""
 

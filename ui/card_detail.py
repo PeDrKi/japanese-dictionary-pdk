@@ -3,6 +3,7 @@ import os
 import logging
 from tkinter import messagebox
 from ui.tooltip import Tooltip
+from ui.kanji_decomposition_dialog import KanjiDecompositionDialog
 from infrastructure.media import open_with_default_app
 from domain.srs_display import format_due_info, format_ease_label
 from constants import (
@@ -39,9 +40,11 @@ class CardDetail(ctk.CTkFrame):
     Shown/hidden by TableView when a row is selected.
     """
 
-    def __init__(self, master, deck_service, on_edit=None, on_delete=None, on_toggle_fav=None, **kwargs):
+    def __init__(self, master, deck_service, decomposition_service=None,
+                 on_edit=None, on_delete=None, on_toggle_fav=None, **kwargs):
         super().__init__(master, corner_radius=0, width=300, **kwargs)
-        self._deck_service  = deck_service
+        self._deck_service          = deck_service
+        self._decomposition_service = decomposition_service
         self.on_edit       = on_edit
         self.on_delete     = on_delete
         self.on_toggle_fav = on_toggle_fav
@@ -101,9 +104,18 @@ class CardDetail(ctk.CTkFrame):
                       command=self._open_deck_assign)
         _deck_btn.pack(side="left", padx=2)
 
+        # Only shown for single-character kanji cards (see _render_header)
+        self._decompose_btn = ctk.CTkButton(
+            btn_frame, text="🧩", width=32, height=32, corner_radius=16,
+            fg_color="transparent", hover_color=("gray80", "gray30"),
+            text_color=("gray10", "gray90"),
+            font=ctk.CTkFont(size=14),
+            command=self._open_decomposition)
+
         # Tooltips for header buttons
         Tooltip(self._fav_btn, "Toggle yêu thích")
         Tooltip(_deck_btn,     "Quản lý Deck — thêm/bỏ thẻ khỏi bộ thẻ")
+        Tooltip(self._decompose_btn, "Phân tích bộ thủ")
 
         # ── Scrollable body ──
         self._scroll = ctk.CTkScrollableFrame(self, corner_radius=0,
@@ -127,6 +139,7 @@ class CardDetail(ctk.CTkFrame):
             w.destroy()
         self._title_lbl.configure(text="Chi tiết thẻ")
         self._fav_btn.configure(text="☆")
+        self._decompose_btn.pack_forget()
         ctk.CTkLabel(self._scroll,
                      text="← Chọn một thẻ\nđể xem chi tiết",
                      font=ctk.CTkFont(size=13),
@@ -157,6 +170,13 @@ class CardDetail(ctk.CTkFrame):
         self._fav_btn.configure(
             text="★" if c.get("is_favorite") else "☆",
             text_color="#F0B429" if c.get("is_favorite") else ("gray60","gray50"))
+
+        # "Phân tích bộ" only makes sense for a single kanji character —
+        # an IDS decomposition of a whole vocab word isn't meaningful.
+        if c.get("type") == TYPE_KANJI and len(c.get("character", "")) == 1:
+            self._decompose_btn.pack(side="left", padx=2)
+        else:
+            self._decompose_btn.pack_forget()
 
     def _render_character(self, c: dict):
         """Big character box with status + JLPT badges."""
@@ -370,6 +390,12 @@ class CardDetail(ctk.CTkFrame):
                      text_color=color if color else ("gray15", "gray90"),
                      wraplength=160, justify="left",
                      anchor="w").grid(row=0, column=1, sticky="w")
+
+    def _open_decomposition(self):
+        if not self._card or not self._decomposition_service:
+            return
+        KanjiDecompositionDialog(self, self._decomposition_service,
+                                  character=self._card["character"])
 
     def _open_deck_assign(self):
         if not self._card:
