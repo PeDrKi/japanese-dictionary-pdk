@@ -62,16 +62,28 @@ class SupabaseSync:
                  bucket: str = DEFAULT_BUCKET,
                  remote_filename: str = DEFAULT_FILENAME,
                  progress_cb=None):
-        self.supabase_url    = supabase_url.rstrip("/")
-        self.supabase_key    = supabase_key
-        self.bucket          = bucket
-        self.remote_filename = remote_filename
+        self.supabase_url    = self._clean(supabase_url).rstrip("/")
+        self.supabase_key    = self._clean(supabase_key)
+        self.bucket           = self._clean(bucket)
+        self.remote_filename  = self._clean(remote_filename)
         self.progress_cb     = progress_cb or (lambda msg: None)
         self._storage_base   = f"{self.supabase_url}/storage/v1"
         self._headers = {
-            "apikey":        supabase_key,
-            "Authorization": f"Bearer {supabase_key}",
+            "apikey":        self.supabase_key,
+            "Authorization": f"Bearer {self.supabase_key}",
         }
+
+    @staticmethod
+    def _clean(s: str) -> str:
+        """Bỏ khoảng trắng đầu/cuối và các ký tự vô hình hay dính khi
+        copy-paste từ trình duyệt (zero-width space, BOM, non-breaking
+        space) — nguyên nhân phổ biến gây lỗi 'Invalid path' dù nhìn
+        bằng mắt URL/key có vẻ đúng."""
+        if not s:
+            return s
+        for ch in ("\u200b", "\ufeff", "\xa0"):
+            s = s.replace(ch, "")
+        return s.strip()
 
     # ── Public entry point ────────────────────────────────────────────────────
 
@@ -93,6 +105,8 @@ class SupabaseSync:
     # ── Core sync logic ───────────────────────────────────────────────────────
 
     def _run_sync(self) -> tuple[bool, dict, str]:
+        self._validate_config()
+
         self._log("🔍 Kiểm tra file trên Supabase...")
         remote_exists = self._remote_exists()
 
@@ -125,23 +139,54 @@ class SupabaseSync:
     def _object_url(self) -> str:
         return f"{self._storage_base}/object/{self.bucket}/{self.remote_filename}"
 
+    def _validate_config(self):
+        """Bắt sớm các lỗi cấu hình phổ biến trước khi gọi mạng, vì server
+        Supabase có thể trả lỗi khó hiểu ('Invalid path specified in
+        request URL') khi Project URL bị dán kèm path thừa (vd .../rest/v1,
+        .../dashboard/project/xxx) thay vì chỉ https://xxxx.supabase.co."""
+        import re
+
+        if not self.supabase_url or not self.supabase_key:
+            raise RuntimeError("Thiếu Project URL hoặc API Key.")
+
+        m = re.match(r"^https://([a-z0-9-]+)\.supabase\.co(/.*)?$", self.supabase_url)
+        if not m:
+            raise RuntimeError(
+                f"Project URL không đúng định dạng: '{self.supabase_url}'.\n"
+                "Cần đúng dạng https://xxxxxxxx.supabase.co — không kèm "
+                "thêm /rest/v1, /storage/v1, /dashboard/... phía sau.\n"
+                "Lấy lại tại Settings → Data API → Project URL.")
+        extra_path = m.group(2)
+        if extra_path and extra_path not in ("", "/"):
+            raise RuntimeError(
+                f"Project URL có phần đường dẫn thừa phía sau: '{extra_path}'.\n"
+                f"Chỉ dán https://{m.group(1)}.supabase.co (bỏ phần còn lại).")
+
+        if not self.bucket:
+            raise RuntimeError("Thiếu tên bucket Storage.")
+        if not re.match(r"^[a-zA-Z0-9._-]+$", self.bucket):
+            raise RuntimeError(
+                f"Tên bucket '{self.bucket}' chứa ký tự không hợp lệ. "
+                "Bucket chỉ nên gồm chữ thường, số và dấu gạch ngang.")
+
     def _remote_exists(self) -> bool:
         import httpx
 
         # Dùng endpoint list (POST /object/list/<bucket>) với search=filename —
         # tương thích rộng hơn HEAD/info trên mọi version Storage API.
+        url = f"{self._storage_base}/object/list/{self.bucket}"
         try:
             resp = httpx.post(
-                f"{self._storage_base}/object/list/{self.bucket}",
+                url,
                 headers={**self._headers, "Content-Type": "application/json"},
                 json={"prefix": "", "search": self.remote_filename, "limit": 100},
                 timeout=_TIMEOUT,
             )
         except httpx.RequestError as e:
-            raise RuntimeError(f"Không kết nối được tới Supabase: {e}") from e
+            raise RuntimeError(f"Không kết nối được tới Supabase ({url}): {e}") from e
 
         if resp.status_code != 200:
-            raise RuntimeError(self._extract_error(resp))
+            raise RuntimeError(self._extract_error(resp, url))
 
         files = resp.json()
         return any(f.get("name") == self.remote_filename for f in files)
@@ -149,13 +194,14 @@ class SupabaseSync:
     def _download(self, dest_path: str):
         import httpx
 
+        url = self._object_url()
         try:
-            resp = httpx.get(self._object_url(), headers=self._headers, timeout=_TIMEOUT)
+            resp = httpx.get(url, headers=self._headers, timeout=_TIMEOUT)
         except httpx.RequestError as e:
-            raise RuntimeError(f"Không kết nối được tới Supabase: {e}") from e
+            raise RuntimeError(f"Không kết nối được tới Supabase ({url}): {e}") from e
 
         if resp.status_code != 200:
-            raise RuntimeError(self._extract_error(resp))
+            raise RuntimeError(self._extract_error(resp, url))
 
         with open(dest_path, "wb") as f:
             f.write(resp.content)
@@ -174,20 +220,20 @@ class SupabaseSync:
         if upsert:
             headers["x-upsert"] = "true"
 
+        url = self._object_url()
         method = httpx.put if upsert else httpx.post
         try:
-            resp = method(self._object_url(), headers=headers,
-                          content=file_bytes, timeout=_TIMEOUT)
+            resp = method(url, headers=headers, content=file_bytes, timeout=_TIMEOUT)
         except httpx.RequestError as e:
-            raise RuntimeError(f"Không kết nối được tới Supabase: {e}") from e
+            raise RuntimeError(f"Không kết nối được tới Supabase ({url}): {e}") from e
 
         if resp.status_code not in (200, 201):
-            raise RuntimeError(self._extract_error(resp))
+            raise RuntimeError(self._extract_error(resp, url))
         logger.info(
             f"{'Updated' if upsert else 'Created'} Supabase file {self.remote_filename}")
 
     @staticmethod
-    def _extract_error(resp) -> str:
+    def _extract_error(resp, url: str = "") -> str:
         """Rút lỗi thật từ response Supabase, không phụ thuộc shape cố định."""
         try:
             data = resp.json()
@@ -197,7 +243,8 @@ class SupabaseSync:
                 msg = str(data)
         except Exception:
             msg = resp.text or f"HTTP {resp.status_code}"
-        return f"Supabase trả lỗi (HTTP {resp.status_code}): {msg}"
+        where = f"\nURL: {url}" if url else ""
+        return f"Supabase trả lỗi (HTTP {resp.status_code}): {msg}{where}"
 
     # ── Merge logic (giống hệt bản Drive cũ — thuần sqlite3, không đụng mạng) ──
 
