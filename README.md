@@ -41,13 +41,16 @@ database/        → tầng dữ liệu SQLite gốc, chỉ được infrastruct
 
 `domain/` và `application/` có 100% test coverage (`tests/domain/`, `tests/application/`, `tests/infrastructure/`). `ui/` hiện chưa có test tự động.
 
-## Đồng bộ Google Drive (tùy chọn)
+## Đồng bộ Supabase (tùy chọn)
 
-Tính năng Sync cần file OAuth Client Secret riêng của bạn (không đi kèm repo này vì lý do bảo mật):
+Đồng bộ file `japanese.db` 2 chiều giữa các thiết bị qua [Supabase](https://supabase.com) Storage — không cần đăng nhập OAuth, chỉ cần Project URL + API key:
 
-1. Tạo project trên [Google Cloud Console](https://console.cloud.google.com/), bật **Google Drive API**.
-2. Tạo OAuth 2.0 Client ID loại **Desktop app**, tải file `client_secret_*.json`.
-3. Đặt file đó vào thư mục `database/`.
+1. Tạo project miễn phí trên [supabase.com](https://supabase.com).
+2. Vào **Storage** → tạo bucket mới (ví dụ `japanese-db-sync`).
+3. Vào **Settings → API**, copy **Project URL** và **API key** (anon hoặc service_role).
+4. Mở app → nút Sync → dán URL + key + tên bucket → **Bắt đầu Sync**.
+
+Cài đặt được lưu lại trong `settings.json` (cạnh DB) để lần sau không phải nhập lại. Cùng một project + bucket có thể dùng chung cho mọi thiết bị đang chạy app này.
 4. Mở app → **☁️ Sync** → đăng nhập Google lần đầu qua trình duyệt.
 
 Token đăng nhập (`database/drive_token.json`) và file database cá nhân (`database/japanese.db`) đã được `.gitignore` loại trừ — không bị commit lên GitHub.

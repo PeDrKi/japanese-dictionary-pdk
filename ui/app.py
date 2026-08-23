@@ -311,7 +311,7 @@ class App(ctk.CTk):
         BackupView(self)
 
     def _open_sync(self):
-        """Mở dialog sync Google Drive."""
+        """Mở dialog sync Supabase."""
         def on_done():
             # Reload table + stats sau khi sync xong
             if hasattr(self, "table"):
