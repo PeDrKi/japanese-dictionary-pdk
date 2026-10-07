@@ -59,7 +59,8 @@ def get_full_stats():
     """).fetchall()
     deck_sizes = cur.execute("""
         SELECT d.name, COUNT(dc.card_id) as n FROM decks d
-        LEFT JOIN deck_cards dc ON d.id=dc.deck_id GROUP BY d.id ORDER BY n DESC
+        LEFT JOIN deck_cards dc ON d.id=dc.deck_id AND dc.deleted_at IS NULL
+        WHERE d.deleted_at IS NULL GROUP BY d.id ORDER BY n DESC
     """).fetchall()
     return {
         "total": total, "by_type": by_type, "by_status": by_status,

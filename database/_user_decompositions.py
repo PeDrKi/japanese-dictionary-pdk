@@ -16,7 +16,8 @@ from ._common import get_connection, _db_op
 def get_user_decomposition(character: str):
     conn = get_connection()
     row = conn.execute(
-        "SELECT parts FROM user_decompositions WHERE character=?", (character,)
+        "SELECT parts FROM user_decompositions WHERE character=? AND deleted_at IS NULL",
+        (character,)
     ).fetchone()
     return row["parts"] if row else None
 
@@ -26,15 +27,19 @@ def set_user_decomposition(character: str, parts: str):
     conn = get_connection()
     conn.execute(
         "INSERT INTO user_decompositions (character,parts,updated_at) VALUES (?,?,datetime('now','localtime')) "
-        "ON CONFLICT(character) DO UPDATE SET parts=excluded.parts, updated_at=excluded.updated_at",
+        "ON CONFLICT(character) DO UPDATE SET parts=excluded.parts, "
+        "updated_at=excluded.updated_at, deleted_at=NULL",
         (character, parts))
     conn.commit()
 
 
 @_db_op
 def delete_user_decomposition(character: str):
+    """Xóa mềm — xem ghi chú ở _decks.py::delete_deck() cho lý do."""
     conn = get_connection()
-    conn.execute("DELETE FROM user_decompositions WHERE character=?", (character,))
+    conn.execute(
+        "UPDATE user_decompositions SET deleted_at=datetime('now','localtime'), "
+        "updated_at=datetime('now','localtime') WHERE character=?", (character,))
     conn.commit()
 
 
@@ -42,6 +47,7 @@ def delete_user_decomposition(character: str):
 def get_all_user_decompositions():
     conn = get_connection()
     rows = conn.execute(
-        "SELECT character, parts FROM user_decompositions ORDER BY character"
+        "SELECT character, parts FROM user_decompositions "
+        "WHERE deleted_at IS NULL ORDER BY character"
     ).fetchall()
     return [dict(r) for r in rows]

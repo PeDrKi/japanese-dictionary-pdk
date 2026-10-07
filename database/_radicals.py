@@ -12,6 +12,7 @@ user considers to belong to a given bộ is their own call, entered/curated
 by hand (see ui/radical_view.py).
 """
 from ._common import get_connection, _db_op
+from infrastructure.id_gen import uuid7
 
 
 @_db_op
@@ -19,7 +20,9 @@ def get_all_radicals():
     conn = get_connection()
     rows = conn.execute("""
         SELECT r.*, COUNT(rc.card_id) as card_count
-        FROM radicals r LEFT JOIN radical_cards rc ON rc.radical_id = r.id
+        FROM radicals r LEFT JOIN radical_cards rc
+            ON rc.radical_id = r.id AND rc.deleted_at IS NULL
+        WHERE r.deleted_at IS NULL
         GROUP BY r.id ORDER BY r.sort_order, r.created_at
     """).fetchall()
     return [dict(r) for r in rows]
@@ -30,10 +33,10 @@ def add_radical(character: str, name: str = "", color: str = "#4A90D9"):
     conn = get_connection()
     cur  = conn.cursor()
     next_order = cur.execute("SELECT COALESCE(MAX(sort_order), -1) + 1 FROM radicals").fetchone()[0]
+    new_id = uuid7()
     cur.execute(
-        "INSERT INTO radicals (character,name,color,sort_order) VALUES (?,?,?,?)",
-        (character, name, color, next_order))
-    new_id = cur.lastrowid
+        "INSERT INTO radicals (id,character,name,color,sort_order) VALUES (?,?,?,?,?)",
+        (new_id, character, name, color, next_order))
     conn.commit()
     return new_id
 
@@ -42,15 +45,19 @@ def add_radical(character: str, name: str = "", color: str = "#4A90D9"):
 def update_radical(radical_id: int, character: str, name: str, color: str):
     conn = get_connection()
     conn.execute(
-        "UPDATE radicals SET character=?, name=?, color=? WHERE id=?",
+        "UPDATE radicals SET character=?, name=?, color=?, "
+        "updated_at=datetime('now','localtime') WHERE id=?",
         (character, name, color, radical_id))
     conn.commit()
 
 
 @_db_op
 def delete_radical(radical_id: int):
+    """Xóa mềm — xem ghi chú ở _decks.py::delete_deck() cho lý do."""
     conn = get_connection()
-    conn.execute("DELETE FROM radicals WHERE id=?", (radical_id,))
+    conn.execute(
+        "UPDATE radicals SET deleted_at=datetime('now','localtime'), "
+        "updated_at=datetime('now','localtime') WHERE id=?", (radical_id,))
     conn.commit()
 
 
@@ -60,7 +67,7 @@ def reorder_radicals(ordered_ids: list):
     `ordered_ids` is every radical id, in the desired display order."""
     conn = get_connection()
     conn.executemany(
-        "UPDATE radicals SET sort_order=? WHERE id=?",
+        "UPDATE radicals SET sort_order=?, updated_at=datetime('now','localtime') WHERE id=?",
         [(i, rid) for i, rid in enumerate(ordered_ids)])
     conn.commit()
 
@@ -68,16 +75,22 @@ def reorder_radicals(ordered_ids: list):
 @_db_op
 def add_card_to_radical(radical_id: int, card_id: int):
     conn = get_connection()
-    conn.execute("INSERT OR IGNORE INTO radical_cards (radical_id,card_id) VALUES (?,?)",
-                 (radical_id, card_id))
+    conn.execute(
+        "INSERT INTO radical_cards (id,radical_id,card_id) VALUES (?,?,?) "
+        "ON CONFLICT(radical_id,card_id) DO UPDATE SET "
+        "deleted_at=NULL, updated_at=datetime('now','localtime')",
+        (uuid7(), radical_id, card_id))
     conn.commit()
 
 
 @_db_op
 def remove_card_from_radical(radical_id: int, card_id: int):
     conn = get_connection()
-    conn.execute("DELETE FROM radical_cards WHERE radical_id=? AND card_id=?",
-                 (radical_id, card_id))
+    conn.execute(
+        "UPDATE radical_cards SET deleted_at=datetime('now','localtime'), "
+        "updated_at=datetime('now','localtime') "
+        "WHERE radical_id=? AND card_id=? AND deleted_at IS NULL",
+        (radical_id, card_id))
     conn.commit()
 
 
@@ -88,7 +101,8 @@ def get_radicals_for_card(card_id: int):
     rows = conn.execute(
         "SELECT r.id, r.character, r.name, r.color FROM radicals r "
         "JOIN radical_cards rc ON rc.radical_id = r.id "
-        "WHERE rc.card_id = ? ORDER BY r.sort_order",
+        "WHERE rc.card_id = ? AND r.deleted_at IS NULL AND rc.deleted_at IS NULL "
+        "ORDER BY r.sort_order",
         (card_id,)
     ).fetchall()
     return [dict(r) for r in rows]
@@ -97,13 +111,13 @@ def get_radicals_for_card(card_id: int):
 @_db_op
 def get_cards_for_radical(radical_id: int):
     """Every card placed in a given bộ — the "tra cứu 1 bộ gồm nhiều từ
-    thuộc bộ đó" lookup. Excludes soft-deleted cards, same as the rest of
-    the app's card lists."""
+    thuộc bộ đó" lookup. Excludes soft-deleted cards and soft-deleted
+    memberships, same as the rest of the app's card lists."""
     conn = get_connection()
     rows = conn.execute(
         "SELECT c.* FROM cards c "
         "JOIN radical_cards rc ON rc.card_id = c.id "
-        "WHERE rc.radical_id = ? AND c.deleted_at IS NULL "
+        "WHERE rc.radical_id = ? AND c.deleted_at IS NULL AND rc.deleted_at IS NULL "
         "ORDER BY c.character",
         (radical_id,)
     ).fetchall()

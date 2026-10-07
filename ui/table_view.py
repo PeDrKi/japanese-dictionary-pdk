@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 # ── Column definitions ────────────────────────────────────────────────────────
 COLUMNS = [
-    ("id",           "ID",        45,  False),
+    ("stt",           "STT",       50,  False),
     ("type",         "Loại",      55,  True),
     ("character",    "Ký tự",     90,  True),
     ("reading_on",   "On-yomi",   100, True),
@@ -295,13 +295,14 @@ class TableView(ctk.CTkFrame):
 
         insert  = self.tree.insert
         tlabels = TYPE_LABELS
+        stt_start = self._paginator.offset + 1
         for i, c in enumerate(self._cards):
             tags = ("even",) if i % 2 == 0 else ("odd",)
             if c.get("is_favorite"):
                 tags = tags + ("fav",)
             t = c["type"]
             insert("", "end", iid=str(c["id"]), tags=tags, values=(
-                c["id"],
+                stt_start + i,
                 tlabels.get(t, t),
                 c["character"],
                 c.get("reading_on")   or "",
@@ -347,11 +348,11 @@ class TableView(ctk.CTkFrame):
         sel = self.tree.selection()
         if not sel:
             return None
-        cid = int(sel[0])
+        cid = sel[0]  # id là chuỗi UUIDv7, không còn ép về int
         return next((c for c in self._cards if c["id"] == cid), None)
 
     def _bulk_selected_ids(self):
-        return [int(iid) for iid in self.tree.selection()]
+        return list(self.tree.selection())
 
     # ── CRUD ──────────────────────────────────────────────────────────────────
 

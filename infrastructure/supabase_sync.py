@@ -31,12 +31,11 @@ Thiết lập phía Supabase (1 lần):
 """
 
 import sqlite3
-import shutil
 import os
 import logging
 import tempfile
 from datetime import datetime
-from database.db import DB_PATH
+from database.db import DB_PATH, init_db as _init_db_schema
 
 logger = logging.getLogger(__name__)
 
@@ -108,29 +107,43 @@ class SupabaseSync:
         self._validate_config()
 
         self._log("🔍 Kiểm tra file trên Supabase...")
-        remote_exists = self._remote_exists()
+        remote_exists, server_date = self._remote_exists()
+        self._check_clock_skew(server_date)
 
-        with tempfile.TemporaryDirectory() as tmp:
-            remote_path = os.path.join(tmp, "remote.db")
+        self._log("🔒 Xin khóa đồng bộ (tránh 2 máy sync cùng lúc)...")
+        self._acquire_lock()
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                remote_path = os.path.join(tmp, "remote.db")
 
-            if remote_exists:
-                self._log("⬇️  Tải DB từ Supabase...")
-                self._download(remote_path)
-                self._log("🔀 Đang merge dữ liệu...")
-                stats = self._merge(local_path=DB_PATH,
-                                    remote_path=remote_path)
-            else:
-                self._log("📭 Chưa có file trên Supabase — sẽ upload lần đầu.")
-                stats = {"pushed": 0, "pulled": 0,
-                         "conflicts_resolved": 0, "skipped": 0}
+                if remote_exists:
+                    self._log("⬇️  Tải DB từ Supabase...")
+                    self._download(remote_path)
+                    # Bản trên Supabase có thể là snapshot cũ (upload từ 1
+                    # lần sync trước, lúc app chưa có cột/migration mới
+                    # nhất) — nâng cấp schema của nó lên mới nhất trước khi
+                    # merge, tránh lỗi kiểu "no such column: ...".
+                    _init_db_schema(db_path=remote_path)
+                    self._log("🔀 Đang merge dữ liệu...")
+                    stats = self._merge(local_path=DB_PATH,
+                                        remote_path=remote_path)
+                else:
+                    self._log("📭 Chưa có file trên Supabase — sẽ upload lần đầu.")
+                    stats = {"pushed": 0, "pulled": 0,
+                             "conflicts_resolved": 0, "skipped": 0,
+                             "id_collisions": 0}
 
-            self._log("⬆️  Upload DB đã merge lên Supabase...")
-            self._upload(DB_PATH, upsert=remote_exists)
+                self._log("⬆️  Upload DB đã merge lên Supabase...")
+                self._upload(DB_PATH, upsert=remote_exists)
+        finally:
+            self._release_lock()
 
         summary = (f"✅ Sync hoàn tất  |  "
                    f"Đẩy lên: {stats['pushed']}  "
                    f"Kéo về: {stats['pulled']}  "
                    f"Conflict: {stats['conflicts_resolved']}")
+        if stats.get("id_collisions"):
+            summary += f"\n⚠️ Phát hiện {stats['id_collisions']} trường hợp trùng ID — đã tự thêm thành mục mới, không mất dữ liệu, nhưng bạn nên kiểm tra lại (xem log ở trên) để dọn trùng lặp nếu cần."
         self._log(summary)
         return True, stats, ""
 
@@ -169,8 +182,12 @@ class SupabaseSync:
                 f"Tên bucket '{self.bucket}' chứa ký tự không hợp lệ. "
                 "Bucket chỉ nên gồm chữ thường, số và dấu gạch ngang.")
 
-    def _remote_exists(self) -> bool:
+    def _remote_exists(self) -> tuple:
+        """Trả về (exists: bool, server_date: datetime|None). server_date
+        lấy từ header 'Date' của response — dùng để phát hiện đồng hồ máy
+        local bị lệch trước khi merge (updated_at sai lệch làm merge sai)."""
         import httpx
+        from email.utils import parsedate_to_datetime
 
         # Dùng endpoint list (POST /object/list/<bucket>) với search=filename —
         # tương thích rộng hơn HEAD/info trên mọi version Storage API.
@@ -188,8 +205,98 @@ class SupabaseSync:
         if resp.status_code != 200:
             raise RuntimeError(self._extract_error(resp, url))
 
+        server_date = None
+        date_header = resp.headers.get("date")
+        if date_header:
+            try:
+                server_date = parsedate_to_datetime(date_header)
+            except Exception:
+                server_date = None
+
         files = resp.json()
-        return any(f.get("name") == self.remote_filename for f in files)
+        exists = any(f.get("name") == self.remote_filename for f in files)
+        return exists, server_date
+
+    def _check_clock_skew(self, server_date, max_skew_seconds: int = 300):
+        """Chặn sync sớm nếu đồng hồ hệ thống local lệch quá nhiều so với
+        giờ server — vì toàn bộ merge dựa vào so sánh updated_at lấy từ
+        giờ local, đồng hồ sai sẽ khiến bản mới bị coi là cũ (hoặc ngược
+        lại) một cách âm thầm."""
+        if server_date is None:
+            return  # Không lấy được giờ server (hiếm) — bỏ qua, không chặn sync.
+
+        from datetime import timezone
+        local_now = datetime.now(timezone.utc)
+        sd = server_date if server_date.tzinfo else server_date.replace(tzinfo=timezone.utc)
+        diff = abs((local_now - sd).total_seconds())
+        if diff > max_skew_seconds:
+            minutes = round(diff / 60, 1)
+            raise RuntimeError(
+                f"Đồng hồ hệ thống máy bạn đang lệch khoảng {minutes} phút so với "
+                "giờ chuẩn. Sync bị dừng để tránh merge sai (dữ liệu mới có thể bị "
+                "hiểu nhầm là cũ hơn). Hãy bật đồng bộ giờ tự động (Windows: Settings "
+                "→ Time & Language → 'Set time automatically') rồi thử lại.")
+
+    # ── Khóa sync — hạn chế 2 thiết bị sync cùng lúc chồng lên nhau ──────────
+
+    _LOCK_FILENAME = "sync.lock"
+    _LOCK_MAX_AGE_SECONDS = 5 * 60
+
+    def _lock_url(self) -> str:
+        return f"{self._storage_base}/object/{self.bucket}/{self._LOCK_FILENAME}"
+
+    def _acquire_lock(self):
+        """Best-effort: kiểm tra + tạo file khóa nhỏ trên Supabase trước
+        khi sync. Không phải khóa phân tán tuyệt đối (vẫn có khe hở nhỏ
+        nếu 2 máy bấm Sync đúng cùng 1 khoảnh khắc), nhưng đủ ngăn trường
+        hợp phổ biến nhất: 2 máy sync chồng lên nhau trong vài phút.
+        Khóa tự hết hạn sau 5 phút nên không bao giờ bị kẹt vĩnh viễn nếu
+        app crash giữa chừng."""
+        import httpx
+        import socket
+
+        device = socket.gethostname() or "thiết bị không rõ tên"
+        url = self._lock_url()
+
+        try:
+            resp = httpx.get(url, headers=self._headers, timeout=_TIMEOUT)
+        except httpx.RequestError:
+            return  # Lỗi mạng sẽ lộ rõ ở bước tiếp theo, không chặn ở đây.
+
+        if resp.status_code == 200:
+            owner, age = "không rõ", 0
+            try:
+                content = resp.content.decode("utf-8", errors="ignore")
+                owner, _, ts_str = content.partition("|")
+                lock_time = datetime.fromisoformat(ts_str)
+                age = (datetime.utcnow() - lock_time).total_seconds()
+            except Exception:
+                age = 0  # Không đọc được nội dung khóa -> thận trọng, coi như còn mới
+            if age < self._LOCK_MAX_AGE_SECONDS:
+                remain = int(self._LOCK_MAX_AGE_SECONDS - age)
+                raise RuntimeError(
+                    f"Thiết bị khác ({owner}) có thể đang sync (khóa tạo "
+                    f"{int(age)} giây trước). Đợi khoảng {remain} giây rồi thử lại "
+                    "để tránh 2 máy ghi đè lẫn nhau.")
+
+        body = f"{device}|{datetime.utcnow().isoformat()}".encode("utf-8")
+        headers = {**self._headers, "Content-Type": "text/plain", "x-upsert": "true"}
+        try:
+            r = httpx.post(url, headers=headers, content=body, timeout=_TIMEOUT)
+            if r.status_code not in (200, 201):
+                httpx.put(url, headers=headers, content=body, timeout=_TIMEOUT)
+        except httpx.RequestError:
+            pass  # Không tạo được khóa thì thôi, không chặn sync vì lý do này.
+
+    def _release_lock(self):
+        import httpx
+        try:
+            httpx.request(
+                "DELETE", f"{self._storage_base}/object/{self.bucket}",
+                headers={**self._headers, "Content-Type": "application/json"},
+                json={"prefixes": [self._LOCK_FILENAME]}, timeout=_TIMEOUT)
+        except httpx.RequestError:
+            pass  # Khóa sẽ tự hết hạn sau 5 phút dù xóa lỗi.
 
     def _download(self, dest_path: str):
         import httpx
@@ -210,8 +317,17 @@ class SupabaseSync:
     def _upload(self, src_path: str, upsert: bool):
         import httpx
 
-        with open(src_path, "rb") as f:
-            file_bytes = f.read()
+        # Không đọc trực tiếp byte thô của src_path (file DB đang được ứng
+        # dụng desktop giữ kết nối mở) — trên Windows việc mở file thô để
+        # đọc trong lúc SQLite đang khoá nó có thể ném lỗi hệ điều hành khó
+        # hiểu kiểu "[Errno 22] Invalid argument". Dùng đúng API Backup của
+        # SQLite để lấy 1 bản snapshot nhất quán, an toàn dù file đang mở ở
+        # nơi khác, rồi upload từ bản snapshot đó.
+        with tempfile.TemporaryDirectory() as tmp:
+            snapshot = os.path.join(tmp, "snapshot.db")
+            self._sqlite_backup(src_path, snapshot)
+            with open(snapshot, "rb") as f:
+                file_bytes = f.read()
 
         headers = {
             **self._headers,
@@ -233,6 +349,23 @@ class SupabaseSync:
             f"{'Updated' if upsert else 'Created'} Supabase file {self.remote_filename}")
 
     @staticmethod
+    def _sqlite_backup(src_path: str, dest_path: str):
+        """Snapshot src_path -> dest_path bằng SQLite Backup API (chuẩn,
+        an toàn với nhiều tiến trình/kết nối đang mở cùng file — không như
+        copy file thô bằng shutil/open() vốn có thể vướng khoá file của hệ
+        điều hành, đặc biệt trên Windows, hoặc chụp phải trạng thái nửa
+        vời nếu file đang được ghi dở)."""
+        src = sqlite3.connect(src_path)
+        try:
+            dest = sqlite3.connect(dest_path)
+            try:
+                src.backup(dest)
+            finally:
+                dest.close()
+        finally:
+            src.close()
+
+    @staticmethod
     def _extract_error(resp, url: str = "") -> str:
         """Rút lỗi thật từ response Supabase, không phụ thuộc shape cố định."""
         try:
@@ -250,11 +383,11 @@ class SupabaseSync:
 
     def _merge(self, local_path: str, remote_path: str) -> dict:
         backup = local_path + ".pre_sync"
-        shutil.copy2(local_path, backup)
+        self._sqlite_backup(local_path, backup)
         logger.info(f"Pre-sync backup: {backup}")
 
         stats = {"pushed": 0, "pulled": 0,
-                 "conflicts_resolved": 0, "skipped": 0}
+                 "conflicts_resolved": 0, "skipped": 0, "id_collisions": 0}
 
         local_conn  = sqlite3.connect(local_path)
         remote_conn = sqlite3.connect(remote_path)
@@ -262,66 +395,113 @@ class SupabaseSync:
         remote_conn.row_factory = sqlite3.Row
 
         try:
-            self._merge_cards(local_conn, remote_conn, stats)
-            self._merge_decks(local_conn, remote_conn, stats)
+            self._merge_table(local_conn, remote_conn, "cards", self._CARD_COLS,
+                              immutable_cols=["type", "character", "created_at"],
+                              stats=stats, label="thẻ")
+            self._merge_table(local_conn, remote_conn, "decks", self._DECK_COLS,
+                              immutable_cols=["created_at"],
+                              stats=stats, label="bộ thẻ")
             self._merge_deck_cards(local_conn, remote_conn)
-            self._merge_radicals(local_conn, remote_conn, stats)
-            self._merge_radical_cards(local_conn, remote_conn)
+            if self._table_exists(remote_conn, "radicals"):
+                self._merge_table(local_conn, remote_conn, "radicals", self._RADICAL_COLS,
+                                  immutable_cols=["created_at"],
+                                  stats=stats, label="bộ thủ")
+                self._merge_radical_cards(local_conn, remote_conn)
             self._merge_user_decompositions(local_conn, remote_conn, stats)
             self._merge_study_sessions(local_conn, remote_conn, stats)
             local_conn.commit()
         except Exception:
             local_conn.rollback()
-            shutil.copy2(backup, local_path)
+            local_conn.close()
+            remote_conn.close()
+            # Khôi phục từ backup bằng Backup API (an toàn hơn ghi đè file
+            # thô) — _sqlite_backup tự mở kết nối riêng tới local_path.
+            self._sqlite_backup(backup, local_path)
             raise
-        finally:
+        else:
             local_conn.close()
             remote_conn.close()
 
         return stats
 
-    def _merge_cards(self, local, remote, stats):
-        remote_cards = {r["id"]: dict(r)
-                        for r in remote.execute("SELECT * FROM cards")}
-        local_cards  = {r["id"]: dict(r)
-                        for r in local.execute("SELECT * FROM cards")}
+    # ── Merge theo id với xóa mềm + phát hiện trùng ID ───────────────────────
+    #
+    # "Trùng ID" = 2 thiết bị độc lập tạo ra 2 bản ghi KHÁC NHAU nhưng vô
+    # tình được gán cùng 1 id (dễ xảy ra nhất sau khi chạy reset_db.py trên
+    # 1 máy mà chưa sync các máy còn lại). Nhận diện bằng cách so sánh các
+    # cột "bất biến" (immutable_cols — những giá trị đáng lẽ không đổi sau
+    # khi tạo, vd created_at) giữa 2 bản ghi cùng id: khác nhau -> chắc
+    # chắn là 2 bản ghi khác nhau, KHÔNG phải 1 bản ghi được sửa. Thay vì
+    # ghi đè âm thầm (mất dữ liệu), bản ghi "thua" được thêm vào như một
+    # dòng MỚI (id khác) để giữ lại cả 2, kèm cảnh báo cho người dùng.
 
-        for rid, rc in remote_cards.items():
-            if rid not in local_cards:
-                self._insert_card(local, rc)
+    def _merge_table(self, local, remote, table, cols, immutable_cols, stats, label):
+        remote_rows = {r["id"]: dict(r) for r in remote.execute(f"SELECT * FROM {table}")}
+        local_rows  = {r["id"]: dict(r) for r in local.execute(f"SELECT * FROM {table}")}
+
+        for rid, rr in remote_rows.items():
+            if rid not in local_rows:
+                self._insert_row(local, table, cols, rr)
                 stats["pulled"] += 1
-            else:
-                lc  = local_cards[rid]
-                r_ts = self._parse_ts(rc.get("updated_at"))
-                l_ts = self._parse_ts(lc.get("updated_at"))
-                if r_ts > l_ts:
-                    self._update_card(local, rc)
-                    stats["conflicts_resolved"] += 1
-                elif l_ts > r_ts:
-                    stats["pushed"] += 1
-                else:
-                    stats["skipped"] += 1
+                continue
 
-        for lid in local_cards:
-            if lid not in remote_cards:
+            lr = local_rows[rid]
+            if any(lr.get(c) != rr.get(c) for c in immutable_cols):
+                if self._insert_row(local, table, cols, rr, as_new=True):
+                    stats["id_collisions"] += 1
+                    name = rr.get("character") or rr.get("name") or f"id={rid}"
+                    self._log(f"⚠️ Trùng ID #{rid} ở {label} ('{name}') — "
+                             f"đã thêm bản từ Supabase làm mục MỚI, giữ nguyên "
+                             f"cả 2 bản để không mất dữ liệu.")
+                continue
+
+            r_ts = self._parse_ts(rr.get("updated_at"))
+            l_ts = self._parse_ts(lr.get("updated_at"))
+            if r_ts > l_ts:
+                self._update_row(local, table, cols, rr)
+                stats["conflicts_resolved"] += 1
+            elif l_ts > r_ts:
+                stats["pushed"] += 1
+            else:
+                stats["skipped"] += 1
+
+        for lid in local_rows:
+            if lid not in remote_rows:
                 stats["pushed"] += 1
 
-    def _merge_decks(self, local, remote, stats):
-        remote_decks = {r["name"]: dict(r)
-                        for r in remote.execute("SELECT * FROM decks")}
-        local_decks  = {r["name"]: dict(r)
-                        for r in local.execute("SELECT * FROM decks")}
+    @staticmethod
+    def _insert_row(conn, table, cols, row, as_new=False) -> bool:
+        """Chèn 1 dòng. as_new=True bỏ qua cột id (để SQLite tự cấp id mới)
+        — dùng khi giải quyết trùng ID. Trả về False (bỏ qua, không raise)
+        nếu vẫn đụng ràng buộc UNIQUE khác (vd trùng tên/ký tự) — hiếm khi
+        xảy ra nhưng không được để làm hỏng cả phiên sync."""
+        insert_cols = [c for c in cols if c != "id"] if as_new else cols
+        try:
+            conn.execute(
+                f"INSERT OR IGNORE INTO {table} ({', '.join(insert_cols)}) "
+                f"VALUES ({', '.join('?' * len(insert_cols))})",
+                [row.get(c) for c in insert_cols]
+            )
+            return True
+        except sqlite3.IntegrityError as e:
+            logger.warning(f"Bỏ qua bản ghi xung đột khi merge {table}: {e}")
+            return False
 
-        for name, rd in remote_decks.items():
-            if name not in local_decks:
-                local.execute(
-                    "INSERT OR IGNORE INTO decks "
-                    "(name, description, color, icon, created_at) "
-                    "VALUES (?, ?, ?, ?, ?)",
-                    (rd["name"], rd.get("description"), rd.get("color"),
-                     rd.get("icon"), rd.get("created_at"))
-                )
-                stats["pulled"] += 1
+    @staticmethod
+    def _update_row(conn, table, cols, row):
+        update_cols = [c for c in cols if c != "id"]
+        conn.execute(
+            f"UPDATE {table} SET {', '.join(f'{c}=?' for c in update_cols)} WHERE id=?",
+            [row.get(c) for c in update_cols] + [row["id"]]
+        )
+
+    # ── Bảng liên kết (deck_cards / radical_cards) ────────────────────────────
+    #
+    # Không merge theo id riêng của bảng liên kết (chỉ có ý nghĩa nội bộ 1
+    # DB) — thay vào đó dịch deck_id/radical_id phía remote sang id tương
+    # ứng ở local qua tên/ký tự (decks.name, radicals.character đều UNIQUE),
+    # rồi so khớp theo cặp tự nhiên (deck_id, card_id)/(radical_id, card_id)
+    # + so sánh updated_at để việc gỡ 1 thẻ khỏi deck/bộ cũng đồng bộ đúng.
 
     def _merge_deck_cards(self, local, remote):
         remote_decks = {r["id"]: r["name"]
@@ -329,7 +509,8 @@ class SupabaseSync:
         local_decks  = {r["name"]: r["id"]
                         for r in local.execute("SELECT id, name FROM decks")}
 
-        for row in remote.execute("SELECT deck_id, card_id FROM deck_cards"):
+        for row in remote.execute(
+                "SELECT deck_id, card_id, added_at, updated_at, deleted_at FROM deck_cards"):
             deck_name = remote_decks.get(row["deck_id"])
             if not deck_name:
                 continue
@@ -339,29 +520,24 @@ class SupabaseSync:
             if not local.execute(
                     "SELECT 1 FROM cards WHERE id=?", (row["card_id"],)).fetchone():
                 continue
-            local.execute(
-                "INSERT OR IGNORE INTO deck_cards (deck_id, card_id) VALUES (?,?)",
+
+            existing = local.execute(
+                "SELECT updated_at FROM deck_cards WHERE deck_id=? AND card_id=?",
                 (local_deck_id, row["card_id"])
-            )
-
-    def _merge_radicals(self, local, remote, stats):
-        if not self._table_exists(remote, "radicals"):
-            return  # remote DB predates the "🧩 Bộ thủ" feature — nothing to pull
-        remote_radicals = {r["character"]: dict(r)
-                           for r in remote.execute("SELECT * FROM radicals")}
-        local_radicals  = {r["character"]: dict(r)
-                           for r in local.execute("SELECT * FROM radicals")}
-
-        for character, rr in remote_radicals.items():
-            if character not in local_radicals:
+            ).fetchone()
+            if existing is None:
                 local.execute(
-                    "INSERT OR IGNORE INTO radicals "
-                    "(character, name, color, sort_order, created_at) "
-                    "VALUES (?, ?, ?, ?, ?)",
-                    (rr["character"], rr.get("name"), rr.get("color"),
-                     rr.get("sort_order", 0), rr.get("created_at"))
+                    "INSERT OR IGNORE INTO deck_cards "
+                    "(deck_id, card_id, added_at, updated_at, deleted_at) VALUES (?,?,?,?,?)",
+                    (local_deck_id, row["card_id"], row["added_at"],
+                     row["updated_at"], row["deleted_at"])
                 )
-                stats["pulled"] += 1
+            elif self._parse_ts(row["updated_at"]) > self._parse_ts(existing["updated_at"]):
+                local.execute(
+                    "UPDATE deck_cards SET updated_at=?, deleted_at=? "
+                    "WHERE deck_id=? AND card_id=?",
+                    (row["updated_at"], row["deleted_at"], local_deck_id, row["card_id"])
+                )
 
     def _merge_radical_cards(self, local, remote):
         if not self._table_exists(remote, "radical_cards"):
@@ -371,7 +547,8 @@ class SupabaseSync:
         local_radicals  = {r["character"]: r["id"]
                            for r in local.execute("SELECT character, id FROM radicals")}
 
-        for row in remote.execute("SELECT radical_id, card_id FROM radical_cards"):
+        for row in remote.execute(
+                "SELECT radical_id, card_id, added_at, updated_at, deleted_at FROM radical_cards"):
             character = remote_radicals.get(row["radical_id"])
             if not character:
                 continue
@@ -381,10 +558,24 @@ class SupabaseSync:
             if not local.execute(
                     "SELECT 1 FROM cards WHERE id=?", (row["card_id"],)).fetchone():
                 continue
-            local.execute(
-                "INSERT OR IGNORE INTO radical_cards (radical_id, card_id) VALUES (?,?)",
+
+            existing = local.execute(
+                "SELECT updated_at FROM radical_cards WHERE radical_id=? AND card_id=?",
                 (local_radical_id, row["card_id"])
-            )
+            ).fetchone()
+            if existing is None:
+                local.execute(
+                    "INSERT OR IGNORE INTO radical_cards "
+                    "(radical_id, card_id, added_at, updated_at, deleted_at) VALUES (?,?,?,?,?)",
+                    (local_radical_id, row["card_id"], row["added_at"],
+                     row["updated_at"], row["deleted_at"])
+                )
+            elif self._parse_ts(row["updated_at"]) > self._parse_ts(existing["updated_at"]):
+                local.execute(
+                    "UPDATE radical_cards SET updated_at=?, deleted_at=? "
+                    "WHERE radical_id=? AND card_id=?",
+                    (row["updated_at"], row["deleted_at"], local_radical_id, row["card_id"])
+                )
 
     def _merge_user_decompositions(self, local, remote, stats):
         if not self._table_exists(remote, "user_decompositions"):
@@ -394,12 +585,15 @@ class SupabaseSync:
         local_rows  = {r["character"]: dict(r)
                       for r in local.execute("SELECT * FROM user_decompositions")}
 
+        # character là PRIMARY KEY thật (không phải id tự tăng) nên không
+        # có rủi ro trùng ID kiểu 2 thiết bị tạo độc lập — không cần bước
+        # phát hiện collision ở bảng này.
         for character, rr in remote_rows.items():
             if character not in local_rows:
                 local.execute(
-                    "INSERT INTO user_decompositions (character, parts, updated_at) "
-                    "VALUES (?,?,?)",
-                    (rr["character"], rr["parts"], rr.get("updated_at"))
+                    "INSERT INTO user_decompositions (character, parts, updated_at, deleted_at) "
+                    "VALUES (?,?,?,?)",
+                    (rr["character"], rr["parts"], rr.get("updated_at"), rr.get("deleted_at"))
                 )
                 stats["pulled"] += 1
             else:
@@ -408,8 +602,9 @@ class SupabaseSync:
                 l_ts = self._parse_ts(lr.get("updated_at"))
                 if r_ts > l_ts:
                     local.execute(
-                        "UPDATE user_decompositions SET parts=?, updated_at=? WHERE character=?",
-                        (rr["parts"], rr.get("updated_at"), character)
+                        "UPDATE user_decompositions SET parts=?, updated_at=?, deleted_at=? "
+                        "WHERE character=?",
+                        (rr["parts"], rr.get("updated_at"), rr.get("deleted_at"), character)
                     )
                     stats["conflicts_resolved"] += 1
                 elif l_ts > r_ts:
@@ -440,7 +635,7 @@ class SupabaseSync:
         if new_count:
             stats["pulled"] += new_count
 
-    # ── Card helpers ──────────────────────────────────────────────────────────
+    # ── Column lists dùng bởi _merge_table ────────────────────────────────────
 
     _CARD_COLS = [
         "id", "type", "character", "reading_on", "reading_kun", "reading_kana",
@@ -451,20 +646,15 @@ class SupabaseSync:
         "deleted_at",
     ]
 
-    def _insert_card(self, conn, card):
-        cols = self._CARD_COLS
-        conn.execute(
-            f"INSERT OR IGNORE INTO cards ({', '.join(cols)}) "
-            f"VALUES ({', '.join('?'*len(cols))})",
-            [card.get(c) for c in cols]
-        )
+    _DECK_COLS = [
+        "id", "name", "description", "color", "icon", "category_id",
+        "created_at", "updated_at", "deleted_at",
+    ]
 
-    def _update_card(self, conn, card):
-        cols = [c for c in self._CARD_COLS if c != "id"]
-        conn.execute(
-            f"UPDATE cards SET {', '.join(f'{c}=?' for c in cols)} WHERE id=?",
-            [card.get(c) for c in cols] + [card["id"]]
-        )
+    _RADICAL_COLS = [
+        "id", "character", "name", "color", "sort_order",
+        "created_at", "updated_at", "deleted_at",
+    ]
 
     # ── Utilities ─────────────────────────────────────────────────────────────
 

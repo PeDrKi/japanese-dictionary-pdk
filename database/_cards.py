@@ -7,6 +7,7 @@ working unchanged for all existing callers.
 """
 from datetime import datetime
 from ._common import get_connection, _db_op, _CARD_LIST_COLS
+from infrastructure.id_gen import uuid7
 
 
 # ── CARDS ─────────────────────────────────────────────────────────────────────
@@ -23,7 +24,7 @@ def get_all_cards(type_filter=None, jlpt_filter=None, status_filter=None,
     query = f"SELECT {_CARD_LIST_COLS} FROM cards c"
 
     if deck_id:
-        query += " JOIN deck_cards dc ON c.id = dc.card_id AND dc.deck_id = ?"
+        query += " JOIN deck_cards dc ON c.id = dc.card_id AND dc.deck_id = ? AND dc.deleted_at IS NULL"
         params.append(deck_id)
 
     conds = []
@@ -75,7 +76,7 @@ def count_cards(type_filter=None, jlpt_filter=None, status_filter=None,
     params = []
 
     if deck_id:
-        query += " JOIN deck_cards dc ON c.id = dc.card_id AND dc.deck_id = ?"
+        query += " JOIN deck_cards dc ON c.id = dc.card_id AND dc.deck_id = ? AND dc.deleted_at IS NULL"
         params.append(deck_id)
 
     conds = ["(c.deleted_at IS NULL)"]
@@ -132,17 +133,17 @@ def add_card(data: dict):
     conn = get_connection()
     now  = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     cur  = conn.cursor()
+    new_id = uuid7()
     cur.execute("""
-        INSERT INTO cards (type,character,reading_on,reading_kun,reading_kana,reading_hanviet,
+        INSERT INTO cards (id,type,character,reading_on,reading_kun,reading_kana,reading_hanviet,
             romaji,meaning_vi,meaning_en,example_jp,example_vi,
             stroke_count,jlpt_level,status,is_favorite,source,notes,
             audio_path,image_path,created_at,updated_at)
-        VALUES (:type,:character,:reading_on,:reading_kun,:reading_kana,:reading_hanviet,
+        VALUES (:id,:type,:character,:reading_on,:reading_kun,:reading_kana,:reading_hanviet,
             :romaji,:meaning_vi,:meaning_en,:example_jp,:example_vi,
             :stroke_count,:jlpt_level,:status,:is_favorite,:source,:notes,
             :audio_path,:image_path,:created_at,:updated_at)
-    """, {"reading_hanviet": None, **data, "created_at": now, "updated_at": now})
-    new_id = cur.lastrowid
+    """, {"reading_hanviet": None, **data, "id": new_id, "created_at": now, "updated_at": now})
     conn.commit()
     return new_id
 

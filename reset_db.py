@@ -1,6 +1,11 @@
 """
-reset_db.py — Xoá SẠCH toàn bộ dữ liệu trong database/japanese.db và reset
-ID (autoincrement) của mọi bảng về lại bắt đầu từ 1.
+reset_db.py — Xoá SẠCH toàn bộ dữ liệu trong database/japanese.db.
+
+Lưu ý: từ khi chuyển sang ID kiểu UUIDv7 (infrastructure/id_gen.py), ID
+thật sự lưu trong DB không còn là số 1,2,3... nữa — nhưng STT hiển thị
+trong app (infrastructure/stt.py) luôn được tính lại theo thứ tự tạo,
+nên sau khi xoá sạch và thêm thẻ mới, STT hiển thị vẫn tự nhiên bắt đầu
+lại từ 1 như trước.
 
 Tự động backup file DB hiện tại sang database/japanese.db.bak_YYYYMMDD_HHMMSS
 trước khi xoá, để lỡ chạy nhầm vẫn khôi phục lại được.
@@ -61,14 +66,10 @@ def main():
             if table in existing_tables:
                 conn.execute(f"DELETE FROM {table}")
 
-        # Reset counter autoincrement (cột id INTEGER PRIMARY KEY AUTOINCREMENT)
-        # về 0 để bản ghi tiếp theo bắt đầu lại từ id = 1.
-        if "sqlite_sequence" in existing_tables:
-            conn.execute("DELETE FROM sqlite_sequence")
-
         conn.commit()
         conn.execute("VACUUM")
-        print("✅ Đã xoá sạch dữ liệu và reset ID về 1.")
+        print("✅ Đã xoá sạch dữ liệu. STT hiển thị sẽ tự bắt đầu lại từ 1")
+        print("   khi bạn thêm thẻ/deck mới (STT tính theo thứ tự tạo, không lưu trong DB).")
     except Exception as e:
         conn.rollback()
         print(f"❌ Lỗi, đã rollback: {e}")

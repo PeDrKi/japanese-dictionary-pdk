@@ -35,7 +35,7 @@ Dự án theo hướng Clean Architecture, tách 4 tầng theo hướng phụ th
 ui/              → chỉ gọi application/, không đụng database/ trực tiếp
 application/     → use-case (CardService, DeckService, StudyService, StatsService)
 domain/          → business rule thuần (validators, SRS, kana, parser...) — không import ra ngoài
-infrastructure/  → SQLite, Google Drive, Jisho API, export Anki/CSV, dịch thuật
+infrastructure/  → SQLite, Supabase Sync, Jisho API, export Anki/CSV, dịch thuật
 database/        → tầng dữ liệu SQLite gốc, chỉ được infrastructure/ gọi tới
 ```
 

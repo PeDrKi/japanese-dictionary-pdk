@@ -15,6 +15,7 @@ database.models's public API — and every existing caller/test — keeps
 working without any change.
 """
 from ._common import get_connection, _db_op
+from infrastructure.id_gen import uuid7
 from domain.srs import (
     compute_srs_update as _compute_srs_update,
     next_status,
@@ -30,7 +31,8 @@ from domain.srs import (
 @_db_op
 def log_study(card_id, result):
     conn = get_connection()
-    conn.execute("INSERT INTO study_sessions (card_id,result) VALUES (?,?)", (card_id, result))
+    conn.execute("INSERT INTO study_sessions (id,card_id,result) VALUES (?,?,?)",
+                 (uuid7(), card_id, result))
 
     row = conn.execute(
         "SELECT status, srs_interval, srs_ease FROM cards WHERE id=?", (card_id,)

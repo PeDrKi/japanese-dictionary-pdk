@@ -87,12 +87,12 @@ class TrashView(ctk.CTkToplevel):
             foreground="#e8eaf0" if dark else "#1a1a2e",
             font=("Segoe UI", 11, "bold"), relief="flat")
 
-        cols = ["id","type","character","meaning_vi","jlpt_level","status","deleted_at"]
+        cols = ["stt","type","character","meaning_vi","jlpt_level","status","deleted_at"]
         self.tree = ttk.Treeview(tree_frame, columns=cols, show="headings",
                                   selectmode="extended", style="Trash.Treeview")
-        heads = {"id":"ID","type":"Loại","character":"Ký tự","meaning_vi":"Nghĩa VN",
+        heads = {"stt":"STT","type":"Loại","character":"Ký tự","meaning_vi":"Nghĩa VN",
                  "jlpt_level":"JLPT","status":"Status","deleted_at":"Xóa lúc"}
-        widths = {"id":45,"type":55,"character":90,"meaning_vi":200,
+        widths = {"stt":45,"type":55,"character":90,"meaning_vi":200,
                   "jlpt_level":60,"status":90,"deleted_at":140}
         for c in cols:
             self.tree.heading(c, text=heads[c])
@@ -121,7 +121,7 @@ class TrashView(ctk.CTkToplevel):
             self.tree.insert("", "end", iid=str(c["id"]),
                              tags=["even" if i%2==0 else "odd"],
                              values=(
-                                 c["id"],
+                                 i + 1,
                                  TYPE_LABELS.get(c["type"], c["type"]),
                                  c["character"],
                                  c.get("meaning_vi",""),
@@ -132,7 +132,7 @@ class TrashView(ctk.CTkToplevel):
         self._statusbar.configure(text=f"   {len(cards)} thẻ trong thùng rác")
 
     def _selected_ids(self):
-        return [int(iid) for iid in self.tree.selection()]
+        return list(self.tree.selection())  # id là chuỗi UUIDv7
 
     def _restore_selected(self):
         ids = self._selected_ids()
