@@ -98,6 +98,7 @@ def init_db(seed_sample_data: bool = False, db_path: str | None = None):
             is_favorite  INTEGER NOT NULL DEFAULT 0,
             source       TEXT,
             notes        TEXT,
+            pos          TEXT,
             audio_path   TEXT,
             image_path   TEXT,
             srs_interval INTEGER NOT NULL DEFAULT 1,
@@ -118,7 +119,7 @@ def init_db(seed_sample_data: bool = False, db_path: str | None = None):
 
         CREATE TABLE IF NOT EXISTS decks (
             id          TEXT PRIMARY KEY,
-            name        TEXT NOT NULL UNIQUE,
+            name        TEXT NOT NULL,
             description TEXT,
             color       TEXT DEFAULT '#4A90D9',
             icon        TEXT DEFAULT '📁',
@@ -143,7 +144,7 @@ def init_db(seed_sample_data: bool = False, db_path: str | None = None):
         -- dùng tạo bộ, rồi kéo-thả thẻ Kanji/Từ vựng vào từng bộ.
         CREATE TABLE IF NOT EXISTS radicals (
             id          TEXT PRIMARY KEY,
-            character   TEXT NOT NULL UNIQUE,
+            character   TEXT NOT NULL,
             name        TEXT,
             color       TEXT DEFAULT '#4A90D9',
             sort_order  INTEGER NOT NULL DEFAULT 0,
@@ -203,6 +204,11 @@ def init_db(seed_sample_data: bool = False, db_path: str | None = None):
         cur.execute("ALTER TABLE cards ADD COLUMN reading_hanviet TEXT")
     except Exception:
         pass  # Column already exists
+    _ensure_study_count(cur)
+    try:
+        cur.execute("ALTER TABLE cards ADD COLUMN pos TEXT")   # từ loại (noun/verb1/verb2/verb3/adj_i/adj_na)
+    except Exception:
+        pass  # Column already exists
     try:
         cur.execute("ALTER TABLE decks ADD COLUMN category_id INTEGER REFERENCES deck_categories(id)")
     except Exception:
@@ -248,6 +254,12 @@ def init_db(seed_sample_data: bool = False, db_path: str | None = None):
     # Tự phát hiện DB cũ (id còn kiểu INTEGER) và chuyển toàn bộ khoá
     # chính + khoá ngoại liên quan sang UUIDv7. Xem infrastructure/id_gen.py.
     _migrate_ids_to_uuid7(conn, cur)
+    _backfill_null_ids(cur)
+    conn.commit()
+    _migrate_unique_alive(conn)
+    cur = conn.cursor()
+    _ensure_material_tables(cur)
+    _ensure_sync_schema(cur)
 
     # Update query planner statistics after index changes
     conn.execute("PRAGMA optimize")
@@ -260,6 +272,164 @@ def init_db(seed_sample_data: bool = False, db_path: str | None = None):
 
     conn.commit()
     conn.close()
+
+
+# Bảng tham gia đồng bộ đám mây (infrastructure/cloud_sync.py) và cách theo dõi thay đổi
+_SYNC_TABLES      = ("cards", "decks", "radicals", "deck_categories",
+                     "deck_cards", "radical_cards", "user_decompositions",
+                     "grammar_points", "translations", "conj_forms", "conj_verbs", "conj_cells")
+_SYNC_TOMBSTONES  = ("cards", "decks", "radicals", "deck_categories",
+                     "grammar_points", "translations", "conj_forms", "conj_verbs")   # có thể bị xóa cứng
+
+
+def _ensure_sync_schema(cur):
+    """Thêm cột/trigger theo dõi thay đổi cho đồng bộ Supabase Postgres (cùng backend với bản web).
+
+      dirty          1 = có thay đổi cục bộ chưa gửi lên (trigger tự đặt) · 0 = đã khớp · (study_sessions) 2 = lịch sử cũ
+      server_version phiên bản hàng trên máy chủ ở lần đồng bộ gần nhất (cards/decks/radicals)
+      base_json      bản chụp hàng trên máy chủ ở lần đồng bộ gần nhất — mốc để gộp 3 chiều
+    Hàng đã có sẵn trước khi nâng cấp nhận dirty=1 → lần đồng bộ đầu sẽ đẩy toàn bộ lên.
+    Trigger bỏ qua các ghi do chính engine đồng bộ thực hiện (cờ _sync_ctx.active)."""
+    for t in _SYNC_TABLES:
+        for col, ddl in (("server_version", "INTEGER"), ("base_json", "TEXT"), ("dirty", "INTEGER NOT NULL DEFAULT 1")):
+            try:
+                cur.execute(f"ALTER TABLE {t} ADD COLUMN {col} {ddl}")
+            except Exception:
+                pass
+    try:
+        cur.execute("ALTER TABLE study_sessions ADD COLUMN dirty INTEGER NOT NULL DEFAULT 1")
+        cur.execute("UPDATE study_sessions SET dirty=2")   # lịch sử trước khi có đồng bộ: gửi thẳng, không tính lại SRS
+    except Exception:
+        pass
+
+    cur.execute("CREATE TABLE IF NOT EXISTS _sync_ctx (active INTEGER NOT NULL)")
+    if cur.execute("SELECT COUNT(*) FROM _sync_ctx").fetchone()[0] == 0:
+        cur.execute("INSERT INTO _sync_ctx (active) VALUES (0)")
+    cur.execute("CREATE TABLE IF NOT EXISTS _sync_state (key TEXT PRIMARY KEY, value TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS _sync_tombstones (tbl TEXT NOT NULL, row_id TEXT NOT NULL, PRIMARY KEY (tbl, row_id))")
+    cur.execute("""CREATE TABLE IF NOT EXISTS sync_conflicts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, tbl TEXT, row_id TEXT, label TEXT, field TEXT,
+        local_value TEXT, remote_value TEXT, kept TEXT, at DATETIME DEFAULT (datetime('now','localtime')))""")
+
+    for t in _SYNC_TABLES:
+        if t == "conj_cells":      # khoá kép (verb_id, form_id)
+            cur.execute("""CREATE TRIGGER IF NOT EXISTS trg_conj_cells_dirty AFTER UPDATE ON conj_cells
+                WHEN (SELECT active FROM _sync_ctx) = 0
+                BEGIN UPDATE conj_cells SET dirty=1 WHERE verb_id=NEW.verb_id AND form_id=NEW.form_id; END""")
+            # xóa ô: chỉ ghi tombstone khi động từ / cột còn tồn tại (xóa dây chuyền do xóa động từ / cột thì máy chủ tự xóa)
+            cur.execute("""CREATE TRIGGER IF NOT EXISTS trg_conj_cells_tomb AFTER DELETE ON conj_cells
+                WHEN (SELECT active FROM _sync_ctx) = 0 AND OLD.base_json IS NOT NULL
+                  AND EXISTS (SELECT 1 FROM conj_verbs WHERE id=OLD.verb_id) AND EXISTS (SELECT 1 FROM conj_forms WHERE id=OLD.form_id)
+                BEGIN INSERT OR IGNORE INTO _sync_tombstones (tbl, row_id) VALUES ('conj_cells', OLD.verb_id || '|' || OLD.form_id); END""")
+            continue
+        key = "character" if t == "user_decompositions" else "id"
+        cur.execute(f"""CREATE TRIGGER IF NOT EXISTS trg_{t}_dirty AFTER UPDATE ON {t}
+            WHEN (SELECT active FROM _sync_ctx) = 0
+            BEGIN UPDATE {t} SET dirty=1 WHERE {key}=NEW.{key}; END""")
+    for t in _SYNC_TOMBSTONES:
+        cur.execute(f"""CREATE TRIGGER IF NOT EXISTS trg_{t}_tomb AFTER DELETE ON {t}
+            WHEN (SELECT active FROM _sync_ctx) = 0 AND OLD.base_json IS NOT NULL
+            BEGIN INSERT OR IGNORE INTO _sync_tombstones (tbl, row_id) VALUES ('{t}', OLD.id); END""")
+
+
+def _ensure_material_tables(cur):
+    """Ngữ pháp, Chia động từ, Bản dịch — cùng cấu trúc với bảng cùng tên trên Supabase (schema.sql bản 10–12)."""
+    cur.executescript("""
+        CREATE TABLE IF NOT EXISTS grammar_points (
+            id TEXT PRIMARY KEY, title TEXT NOT NULL, meaning_vi TEXT NOT NULL DEFAULT '',
+            structure TEXT, explanation TEXT, examples TEXT, jlpt_level TEXT,
+            created_at DATETIME DEFAULT (datetime('now','localtime')), updated_at DATETIME DEFAULT (datetime('now','localtime')),
+            server_version INTEGER, base_json TEXT, dirty INTEGER NOT NULL DEFAULT 1);
+        CREATE TABLE IF NOT EXISTS translations (
+            id TEXT PRIMARY KEY, title TEXT, jp TEXT NOT NULL, vi TEXT, note TEXT, jlpt_level TEXT, glossary TEXT,
+            created_at DATETIME DEFAULT (datetime('now','localtime')), updated_at DATETIME DEFAULT (datetime('now','localtime')),
+            server_version INTEGER, base_json TEXT, dirty INTEGER NOT NULL DEFAULT 1);
+        CREATE TABLE IF NOT EXISTS conj_forms (
+            id TEXT PRIMARY KEY, name TEXT NOT NULL, kind TEXT, hidden INTEGER NOT NULL DEFAULT 0, sort_order INTEGER NOT NULL DEFAULT 0,
+            created_at DATETIME DEFAULT (datetime('now','localtime')), updated_at DATETIME DEFAULT (datetime('now','localtime')),
+            server_version INTEGER, base_json TEXT, dirty INTEGER NOT NULL DEFAULT 1);
+        CREATE TABLE IF NOT EXISTS conj_verbs (
+            id TEXT PRIMARY KEY, masu TEXT NOT NULL, meaning_vi TEXT, grp INTEGER, sort_order INTEGER NOT NULL DEFAULT 0,
+            created_at DATETIME DEFAULT (datetime('now','localtime')), updated_at DATETIME DEFAULT (datetime('now','localtime')),
+            server_version INTEGER, base_json TEXT, dirty INTEGER NOT NULL DEFAULT 1);
+        CREATE TABLE IF NOT EXISTS conj_cells (
+            verb_id TEXT NOT NULL REFERENCES conj_verbs(id) ON DELETE CASCADE,
+            form_id TEXT NOT NULL REFERENCES conj_forms(id) ON DELETE CASCADE,
+            value TEXT NOT NULL, updated_at DATETIME DEFAULT (datetime('now','localtime')),
+            server_version INTEGER, base_json TEXT, dirty INTEGER NOT NULL DEFAULT 1,
+            PRIMARY KEY (verb_id, form_id));
+        CREATE INDEX IF NOT EXISTS idx_conj_cells_form ON conj_cells(form_id);
+        CREATE INDEX IF NOT EXISTS idx_translations_created ON translations(created_at DESC);
+    """)
+
+
+def _ensure_study_count(cur):
+    """cards.study_count: số lần học (đúng +1, sai −1, không dưới 0). Trạng thái = f(study_count): 0 chưa học · 1–19 đang học · ≥20 đã nhớ.
+    Lần đầu: tính lại từ lịch sử ôn (giống máy chủ); thẻ chưa có lịch sử giữ trạng thái cũ (đã nhớ→20, đang học→1)."""
+    cols = {r[1] for r in cur.execute("PRAGMA table_info(cards)")}
+    if "study_count" in cols:
+        return
+    cur.execute("ALTER TABLE cards ADD COLUMN study_count INTEGER NOT NULL DEFAULT 0")
+    from domain.srs import next_count, status_from_count, count_for_status
+    counts = {}
+    try:
+        for cid, res in cur.execute("SELECT card_id, result FROM study_sessions ORDER BY card_id, studied_at, rowid").fetchall():
+            counts[cid] = next_count(counts.get(cid, 0), res)
+    except Exception:
+        pass
+    for cid, status in cur.execute("SELECT id, status FROM cards").fetchall():
+        n = counts[cid] if cid in counts else count_for_status(status)
+        cur.execute("UPDATE cards SET study_count=?, status=? WHERE id=?", (n, status_from_count(n), cid))
+
+
+def _migrate_unique_alive(conn):
+    """Tên bộ thẻ / ký tự bộ thủ chỉ cần duy nhất giữa các hàng CHƯA xoá (giống máy chủ).
+    DB cũ có UNIQUE toàn bảng → xoá mềm bộ "A" rồi tạo lại "A" bị lỗi UNIQUE. Dựng lại bảng (quy trình của SQLite)
+    rồi thay bằng chỉ mục duy nhất có điều kiện."""
+    import re
+    todo = []
+    for table, col in (("decks", "name"), ("radicals", "character")):
+        row = conn.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name=?", (table,)).fetchone()
+        if row and row[0] and re.search(rf"\b{col}\s+TEXT\s+NOT\s+NULL\s+UNIQUE", row[0], re.I):
+            todo.append((table, col, row[0]))
+    if todo:
+        conn.execute("PRAGMA foreign_keys = OFF")          # nếu bật, DROP TABLE sẽ kích hoạt ON DELETE CASCADE của bảng liên kết
+        try:
+            conn.execute("BEGIN")
+            for table, col, sql in todo:
+                new_sql = re.sub(rf"(\b{col}\s+TEXT\s+NOT\s+NULL)\s+UNIQUE", r"\1", sql, flags=re.I)
+                new_sql = re.sub(rf"CREATE TABLE\s+(IF NOT EXISTS\s+)?[\"`\[]?{table}[\"`\]]?", f"CREATE TABLE {table}__new", new_sql, count=1, flags=re.I)
+                conn.execute(new_sql)
+                conn.execute(f"INSERT INTO {table}__new SELECT * FROM {table}")
+                conn.execute(f"DROP TABLE {table}")
+                conn.execute(f"ALTER TABLE {table}__new RENAME TO {table}")
+            conn.execute("COMMIT")
+        except BaseException:
+            try:
+                conn.execute("ROLLBACK")
+            except Exception:
+                pass
+            raise
+        finally:
+            conn.execute("PRAGMA foreign_keys = ON")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_decks_category ON decks(category_id)")
+    conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS uq_decks_name_alive ON decks(name) WHERE deleted_at IS NULL")
+    conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS uq_radicals_char_alive ON radicals(character) WHERE deleted_at IS NULL")
+    conn.commit()
+
+
+def _backfill_null_ids(cur):
+    """Các bản sync cũ chèn deck_cards / radical_cards / study_sessions KHÔNG kèm id.
+    Vì cột id là TEXT PRIMARY KEY (không NOT NULL) nên SQLite vẫn nhận NULL. Cấp UUIDv7
+    cho các dòng đó để mọi bảng đều có khoá chính thật (và để xuất/nhập sang web được)."""
+    from infrastructure.id_gen import uuid7
+    for table in ("deck_cards", "radical_cards", "study_sessions"):
+        try:
+            rows = cur.execute(f"SELECT rowid FROM {table} WHERE id IS NULL").fetchall()
+        except Exception:
+            continue
+        for r in rows:
+            cur.execute(f"UPDATE {table} SET id=? WHERE rowid=?", (uuid7(), r[0]))
 
 
 def _migrate_ids_to_uuid7(conn, cur):
@@ -380,6 +550,7 @@ def _migrate_ids_to_uuid7(conn, cur):
             is_favorite  INTEGER NOT NULL DEFAULT 0,
             source       TEXT,
             notes        TEXT,
+            pos          TEXT,
             audio_path   TEXT,
             image_path   TEXT,
             srs_interval INTEGER NOT NULL DEFAULT 1,

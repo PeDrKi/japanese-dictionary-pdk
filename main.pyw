@@ -1,6 +1,14 @@
 import sys, os, logging
 sys.path.insert(0, os.path.dirname(__file__))
 
+# Chế độ ngầm: chỉ đồng bộ rồi thoát (không import giao diện). App tự gọi khi đóng cửa sổ.
+if "--sync-only" in sys.argv:
+    import logging as _lg
+    _lg.basicConfig(level=_lg.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+                    handlers=[_lg.FileHandler(os.path.join(os.path.dirname(__file__), "app.log"), encoding="utf-8")])
+    from infrastructure.sync_worker import run as _run_sync
+    sys.exit(_run_sync())
+
 # ── Logging setup ─────────────────────────────────────────────────────────────
 LOG_PATH = os.path.join(os.path.dirname(__file__), "app.log")
 logging.basicConfig(
@@ -24,6 +32,7 @@ from application.radical_service import RadicalService
 from infrastructure.db.sqlite_repositories import (
     SqliteStatsRepository, SqliteCardRepository, SqliteDeckRepository,
     SqliteStudySessionRepository, SqliteRadicalRepository, SqliteUserDecompositionRepository,
+    SqliteMaterialRepository,
 )
 from infrastructure.kanji_ids import FileKanjiIdsRepository
 
@@ -59,11 +68,13 @@ def main():
     study_service         = StudyService(SqliteStudySessionRepository())
     decomposition_service = DecompositionService(FileKanjiIdsRepository(), SqliteUserDecompositionRepository())
     radical_service        = RadicalService(SqliteRadicalRepository())
+    from application.material_service import MaterialService
+    material_service      = MaterialService(SqliteMaterialRepository(), card_service, deck_service)
 
     app = App(stats_service=stats_service, card_service=card_service,
               deck_service=deck_service, study_service=study_service,
               decomposition_service=decomposition_service,
-              radical_service=radical_service)
+              radical_service=radical_service, material_service=material_service)
     app.mainloop()
     logger.info("App closed.")
 

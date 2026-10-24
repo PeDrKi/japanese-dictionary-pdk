@@ -5,7 +5,7 @@ Extracted from table_view.py.
 import customtkinter as ctk
 import tkinter as tk
 from constants import (
-    CARD_TYPES, CARD_STATUSES, JLPT_LEVELS,
+    CARD_TYPES, CARD_STATUSES, JLPT_LEVELS, CARD_POS, POS_LABELS,
     KB_ESCAPE,
 )
 from ui.tooltip import Tooltip
@@ -64,7 +64,7 @@ class Toolbar(ctk.CTkFrame):
             row0,
             placeholder_text="🔍  Tìm ký tự, nghĩa, romaji...",
             textvariable=self._search_var,
-            width=280, height=32)
+            width=190, height=32)
         self._search_entry.pack(side="left", padx=(0, 8))
         self._search_entry.bind(KB_ESCAPE, lambda _: self._search_var.set(""))
 
@@ -72,7 +72,15 @@ class Toolbar(ctk.CTkFrame):
         self._jlpt_var = ctk.StringVar(value="Tất cả JLPT")
         ctk.CTkOptionMenu(
             row0, values=["Tất cả JLPT"] + JLPT_LEVELS,
-            variable=self._jlpt_var, width=120, height=32,
+            variable=self._jlpt_var, width=108, height=32,
+            command=lambda _: self._on_filter_change()
+        ).pack(side="left", padx=(0, 6))
+
+        # Từ loại
+        self._pos_var = ctk.StringVar(value="Tất cả từ loại")
+        ctk.CTkOptionMenu(
+            row0, values=["Tất cả từ loại"] + [POS_LABELS[k] for k in CARD_POS],
+            variable=self._pos_var, width=135, height=32,
             command=lambda _: self._on_filter_change()
         ).pack(side="left", padx=(0, 6))
 
@@ -80,13 +88,13 @@ class Toolbar(ctk.CTkFrame):
         self._status_var = ctk.StringVar(value="Tất cả")
         ctk.CTkOptionMenu(
             row0, values=["Tất cả"] + CARD_STATUSES,
-            variable=self._status_var, width=120, height=32,
+            variable=self._status_var, width=100, height=32,
             command=lambda _: self._on_filter_change()
         ).pack(side="left", padx=(0, 6))
 
         # Advanced filter toggle (right side of row 0)
         self._adv_btn = ctk.CTkButton(
-            row0, text="⚙  Lọc nâng cao", width=120, height=32,
+            row0, text="⚙  Lọc nâng cao", width=112, height=32,
             corner_radius=6,
             fg_color=("gray75", "gray35"), text_color=("gray10", "gray90"),
             command=self.toggle_advanced_filter)
@@ -95,7 +103,7 @@ class Toolbar(ctk.CTkFrame):
 
         # Detail panel toggle
         self._toggle_btn = ctk.CTkButton(
-            row0, text="▶ Chi tiết", width=90, height=32,
+            row0, text="▶ Chi tiết", width=84, height=32,
             corner_radius=6,
             fg_color=("gray75", "gray35"), text_color=("gray10", "gray90"),
             command=self._on_toggle_detail)
@@ -114,17 +122,36 @@ class Toolbar(ctk.CTkFrame):
         actions = [
             ("➕  Thêm thẻ",    primary,   self._on_add,          "Thêm thẻ mới  (Ctrl+N)"),
             ("⚡  Nhập nhanh",  secondary, self._on_quick_add,    "Dán nhiều dòng \"chữ - nghĩa\", tạo nhiều thẻ cùng lúc"),
-            ("📥  Import CSV",  secondary, self._on_import,       "Import thẻ từ file CSV"),
-            ("📤  Export CSV",  secondary, self._on_export,       "Export thẻ hiện tại ra CSV"),
-            ("🎴  Anki",        secondary, self._on_export_anki,  "Export sang Anki .apkg  (cần: pip install genanki)"),
-            ("📋  Template",    secondary, self._on_template,     "Tải file CSV mẫu để điền rồi import"),
             ("🗑️  Thùng rác",  secondary, self._on_toggle_trash, "Xem và khôi phục thẻ đã xóa"),
         ]
 
-        for text, style, cmd, tip in actions:
+        for text, style, cmd, tip in actions[:2]:
             btn = ctk.CTkButton(row1, text=text, command=cmd, **bk, **style)
             btn.pack(side="left", padx=(0, 6))
             Tooltip(btn, tip)
+
+        # Nhập/xuất gom vào một menu để thanh công cụ không bị tràn khi cửa sổ hẹp
+        self._io_btn = ctk.CTkButton(row1, text="📁  Nhập / Xuất  ▾", command=self._show_io_menu, **bk, **secondary)
+        self._io_btn.pack(side="left", padx=(0, 6))
+        Tooltip(self._io_btn, "Import/Export CSV, xuất sang Anki, tải file CSV mẫu")
+
+        for text, style, cmd, tip in actions[2:]:
+            btn = ctk.CTkButton(row1, text=text, command=cmd, **bk, **style)
+            btn.pack(side="left", padx=(0, 6))
+            Tooltip(btn, tip)
+
+    def _show_io_menu(self):
+        m = tk.Menu(self, tearoff=0, font=("Segoe UI", 11))
+        m.add_command(label="📥  Import từ CSV…",        command=self._on_import)
+        m.add_command(label="📤  Export ra CSV…",        command=self._on_export)
+        m.add_command(label="🎴  Export sang Anki…",     command=self._on_export_anki)
+        m.add_separator()
+        m.add_command(label="📋  Tải file CSV mẫu…",     command=self._on_template)
+        b = self._io_btn
+        try:
+            m.tk_popup(b.winfo_rootx(), b.winfo_rooty() + b.winfo_height())
+        finally:
+            m.grab_release()
 
     # ── Advanced filter panel ─────────────────────────────────────────────────
 
@@ -210,6 +237,14 @@ class Toolbar(ctk.CTkFrame):
         return None if "Tất cả" in v else v
 
     @property
+    def pos(self):
+        v = self._pos_var.get()
+        for k, label in POS_LABELS.items():
+            if label == v:
+                return k
+        return None
+
+    @property
     def status(self):
         v = self._status_var.get()
         return None if v == "Tất cả" else v
@@ -237,6 +272,7 @@ class Toolbar(ctk.CTkFrame):
 
     def reset_filters(self):
         self._jlpt_var.set("Tất cả JLPT")
+        self._pos_var.set("Tất cả từ loại")
         self._status_var.set("Tất cả")
 
     def focus_search(self):

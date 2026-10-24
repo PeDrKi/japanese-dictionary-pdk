@@ -7,6 +7,7 @@ import customtkinter as ctk
 import random
 import logging
 from ui.tooltip import Tooltip
+from ui import launcher_prefs
 from domain.kana import kana_to_romaji
 from constants import (
     COLOR_GREEN, COLOR_RED, COLOR_BLUE, COLOR_GOLD,
@@ -529,7 +530,7 @@ class TypingLauncher(ctk.CTkToplevel):
             r = ctk.CTkFrame(p, fg_color="transparent")
             r.pack(fill="x", padx=16, pady=6)
             r.grid_columnconfigure(1, weight=1)
-            ctk.CTkLabel(r, text=label, width=80,
+            ctk.CTkLabel(r, text=label, width=92,
                          font=ctk.CTkFont(size=12), anchor="w"
                          ).grid(row=0, column=0, sticky="w")
             w = widget_fn(r)
@@ -551,9 +552,9 @@ class TypingLauncher(ctk.CTkToplevel):
             p, values=["Tất cả"]+CARD_TYPES, variable=self._type_var))
         row(f, "JLPT",   lambda p: ctk.CTkOptionMenu(
             p, values=["Tất cả"]+JLPT_LEVELS, variable=self._jlpt_var))
-        row(f, "Status", lambda p: ctk.CTkOptionMenu(
+        row(f, "Trạng thái", lambda p: ctk.CTkOptionMenu(
             p, values=["Tất cả"]+CARD_STATUSES, variable=self._status_var))
-        row(f, "Deck",   lambda p: ctk.CTkOptionMenu(
+        row(f, "Bộ thẻ",   lambda p: ctk.CTkOptionMenu(
             p, values=["Tất cả"] + list(self._deck_name_to_id), variable=self._deck_var))
         row(f, "Số thẻ", lambda p: ctk.CTkOptionMenu(
             p, values=["10","20","30","50","Tất cả"], variable=self._limit_var))
@@ -600,6 +601,11 @@ class TypingLauncher(ctk.CTkToplevel):
         self._update_split_visibility()
 
 
+        self._prefs_vars = {'type': self._type_var, 'jlpt': self._jlpt_var, 'status': self._status_var, 'deck': self._deck_var, 'limit': self._limit_var, 'due': self._due_var, 'mode': self._mode_var, 'split': self._split_var}
+        launcher_prefs.restore('typing', self._prefs_vars,
+                               allowed={'deck': ['Tất cả'] + list(self._deck_name_to_id)},
+                               skip=('due',) if self._default_due_only else ())
+        self._update_split_visibility()
         for v in [self._type_var, self._jlpt_var, self._status_var, self._deck_var,
                   self._limit_var, self._due_var, self._split_var]:
             v.trace_add("write", lambda *_: self._update_count())
@@ -665,5 +671,6 @@ class TypingLauncher(ctk.CTkToplevel):
             return
         mode = self._mode_var.get()
         split = self._split_var.get()
+        launcher_prefs.save('typing', self._prefs_vars)
         self.destroy()
         TypingView(self.master, cards, self._study_service, ask_mode=mode, split_readings=split)

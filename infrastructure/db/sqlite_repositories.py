@@ -27,20 +27,20 @@ class SqliteCardRepository:
 
     def get_all(self, *, type_filter=None, jlpt_filter=None, status_filter=None,
                 favorite_only=False, deck_id=None, search=None,
-                include_deleted=False, due_only=False, limit=None, offset=0):
+                include_deleted=False, due_only=False, limit=None, offset=0, pos_filter=None):
         return models.get_all_cards(
             type_filter=type_filter, jlpt_filter=jlpt_filter,
             status_filter=status_filter, favorite_only=favorite_only,
             deck_id=deck_id, search=search, include_deleted=include_deleted,
-            due_only=due_only, limit=limit, offset=offset,
+            due_only=due_only, limit=limit, offset=offset, pos_filter=pos_filter,
         )
 
     def count(self, *, type_filter=None, jlpt_filter=None, status_filter=None,
-              favorite_only=False, deck_id=None, search=None, due_only=False):
+              favorite_only=False, deck_id=None, search=None, due_only=False, pos_filter=None):
         return models.count_cards(
             type_filter=type_filter, jlpt_filter=jlpt_filter,
             status_filter=status_filter, favorite_only=favorite_only,
-            deck_id=deck_id, search=search, due_only=due_only,
+            deck_id=deck_id, search=search, due_only=due_only, pos_filter=pos_filter,
         )
 
     def get_due_count(self):
@@ -185,3 +185,14 @@ class SqliteStatsRepository:
 
     def get_full(self):
         return models.get_full_stats()
+
+
+class SqliteMaterialRepository:
+    """Implements domain.repositories.MaterialRepository (Ngữ pháp, Bản dịch, Chia động từ)."""
+
+    def __getattr__(self, name):
+        from database import _materials
+        fn = getattr(_materials, name, None)
+        if fn is None or name.startswith("_"):
+            raise AttributeError(name)
+        return fn

@@ -1,0 +1,2768 @@
+{
+ "conj": [
+  {
+   "masu": "のみます",
+   "grp": 1,
+   "kind": "dict",
+   "out": "のむ"
+  },
+  {
+   "masu": "のみます",
+   "grp": 1,
+   "kind": "nai",
+   "out": "のまない"
+  },
+  {
+   "masu": "のみます",
+   "grp": 1,
+   "kind": "te",
+   "out": "のんで"
+  },
+  {
+   "masu": "のみます",
+   "grp": 1,
+   "kind": "ta",
+   "out": "のんだ"
+  },
+  {
+   "masu": "のみます",
+   "grp": 1,
+   "kind": "potential",
+   "out": "のめる"
+  },
+  {
+   "masu": "のみます",
+   "grp": 1,
+   "kind": "volitional",
+   "out": "のもう"
+  },
+  {
+   "masu": "のみます",
+   "grp": 1,
+   "kind": "imperative",
+   "out": "のめ"
+  },
+  {
+   "masu": "のみます",
+   "grp": 1,
+   "kind": "passive",
+   "out": "のまれる"
+  },
+  {
+   "masu": "のみます",
+   "grp": 1,
+   "kind": "causative",
+   "out": "のませる"
+  },
+  {
+   "masu": "のみます",
+   "grp": 1,
+   "kind": "ba",
+   "out": "のめば"
+  },
+  {
+   "masu": "のみます",
+   "grp": 1,
+   "kind": "prohibitive",
+   "out": "のむな"
+  },
+  {
+   "masu": "のみます",
+   "grp": 1,
+   "kind": "masu_neg",
+   "out": "のみません"
+  },
+  {
+   "masu": "のみます",
+   "grp": 1,
+   "kind": "masu_ta",
+   "out": "のみました"
+  },
+  {
+   "masu": "のみます",
+   "grp": 1,
+   "kind": "nakatta",
+   "out": "のまなかった"
+  },
+  {
+   "masu": "のみます",
+   "grp": 1,
+   "kind": "bogus",
+   "out": ""
+  },
+  {
+   "masu": "かきます",
+   "grp": 1,
+   "kind": "dict",
+   "out": "かく"
+  },
+  {
+   "masu": "かきます",
+   "grp": 1,
+   "kind": "nai",
+   "out": "かかない"
+  },
+  {
+   "masu": "かきます",
+   "grp": 1,
+   "kind": "te",
+   "out": "かいて"
+  },
+  {
+   "masu": "かきます",
+   "grp": 1,
+   "kind": "ta",
+   "out": "かいた"
+  },
+  {
+   "masu": "かきます",
+   "grp": 1,
+   "kind": "potential",
+   "out": "かける"
+  },
+  {
+   "masu": "かきます",
+   "grp": 1,
+   "kind": "volitional",
+   "out": "かこう"
+  },
+  {
+   "masu": "かきます",
+   "grp": 1,
+   "kind": "imperative",
+   "out": "かけ"
+  },
+  {
+   "masu": "かきます",
+   "grp": 1,
+   "kind": "passive",
+   "out": "かかれる"
+  },
+  {
+   "masu": "かきます",
+   "grp": 1,
+   "kind": "causative",
+   "out": "かかせる"
+  },
+  {
+   "masu": "かきます",
+   "grp": 1,
+   "kind": "ba",
+   "out": "かけば"
+  },
+  {
+   "masu": "かきます",
+   "grp": 1,
+   "kind": "prohibitive",
+   "out": "かくな"
+  },
+  {
+   "masu": "かきます",
+   "grp": 1,
+   "kind": "masu_neg",
+   "out": "かきません"
+  },
+  {
+   "masu": "かきます",
+   "grp": 1,
+   "kind": "masu_ta",
+   "out": "かきました"
+  },
+  {
+   "masu": "かきます",
+   "grp": 1,
+   "kind": "nakatta",
+   "out": "かかなかった"
+  },
+  {
+   "masu": "かきます",
+   "grp": 1,
+   "kind": "bogus",
+   "out": ""
+  },
+  {
+   "masu": "いきます",
+   "grp": 1,
+   "kind": "dict",
+   "out": "いく"
+  },
+  {
+   "masu": "いきます",
+   "grp": 1,
+   "kind": "nai",
+   "out": "いかない"
+  },
+  {
+   "masu": "いきます",
+   "grp": 1,
+   "kind": "te",
+   "out": "いって"
+  },
+  {
+   "masu": "いきます",
+   "grp": 1,
+   "kind": "ta",
+   "out": "いった"
+  },
+  {
+   "masu": "いきます",
+   "grp": 1,
+   "kind": "potential",
+   "out": "いける"
+  },
+  {
+   "masu": "いきます",
+   "grp": 1,
+   "kind": "volitional",
+   "out": "いこう"
+  },
+  {
+   "masu": "いきます",
+   "grp": 1,
+   "kind": "imperative",
+   "out": "いけ"
+  },
+  {
+   "masu": "いきます",
+   "grp": 1,
+   "kind": "passive",
+   "out": "いかれる"
+  },
+  {
+   "masu": "いきます",
+   "grp": 1,
+   "kind": "causative",
+   "out": "いかせる"
+  },
+  {
+   "masu": "いきます",
+   "grp": 1,
+   "kind": "ba",
+   "out": "いけば"
+  },
+  {
+   "masu": "いきます",
+   "grp": 1,
+   "kind": "prohibitive",
+   "out": "いくな"
+  },
+  {
+   "masu": "いきます",
+   "grp": 1,
+   "kind": "masu_neg",
+   "out": "いきません"
+  },
+  {
+   "masu": "いきます",
+   "grp": 1,
+   "kind": "masu_ta",
+   "out": "いきました"
+  },
+  {
+   "masu": "いきます",
+   "grp": 1,
+   "kind": "nakatta",
+   "out": "いかなかった"
+  },
+  {
+   "masu": "いきます",
+   "grp": 1,
+   "kind": "bogus",
+   "out": ""
+  },
+  {
+   "masu": "はなします",
+   "grp": 1,
+   "kind": "dict",
+   "out": "はなす"
+  },
+  {
+   "masu": "はなします",
+   "grp": 1,
+   "kind": "nai",
+   "out": "はなさない"
+  },
+  {
+   "masu": "はなします",
+   "grp": 1,
+   "kind": "te",
+   "out": "はなして"
+  },
+  {
+   "masu": "はなします",
+   "grp": 1,
+   "kind": "ta",
+   "out": "はなした"
+  },
+  {
+   "masu": "はなします",
+   "grp": 1,
+   "kind": "potential",
+   "out": "はなせる"
+  },
+  {
+   "masu": "はなします",
+   "grp": 1,
+   "kind": "volitional",
+   "out": "はなそう"
+  },
+  {
+   "masu": "はなします",
+   "grp": 1,
+   "kind": "imperative",
+   "out": "はなせ"
+  },
+  {
+   "masu": "はなします",
+   "grp": 1,
+   "kind": "passive",
+   "out": "はなされる"
+  },
+  {
+   "masu": "はなします",
+   "grp": 1,
+   "kind": "causative",
+   "out": "はなさせる"
+  },
+  {
+   "masu": "はなします",
+   "grp": 1,
+   "kind": "ba",
+   "out": "はなせば"
+  },
+  {
+   "masu": "はなします",
+   "grp": 1,
+   "kind": "prohibitive",
+   "out": "はなすな"
+  },
+  {
+   "masu": "はなします",
+   "grp": 1,
+   "kind": "masu_neg",
+   "out": "はなしません"
+  },
+  {
+   "masu": "はなします",
+   "grp": 1,
+   "kind": "masu_ta",
+   "out": "はなしました"
+  },
+  {
+   "masu": "はなします",
+   "grp": 1,
+   "kind": "nakatta",
+   "out": "はなさなかった"
+  },
+  {
+   "masu": "はなします",
+   "grp": 1,
+   "kind": "bogus",
+   "out": ""
+  },
+  {
+   "masu": "まちます",
+   "grp": 1,
+   "kind": "dict",
+   "out": "まつ"
+  },
+  {
+   "masu": "まちます",
+   "grp": 1,
+   "kind": "nai",
+   "out": "またない"
+  },
+  {
+   "masu": "まちます",
+   "grp": 1,
+   "kind": "te",
+   "out": "まって"
+  },
+  {
+   "masu": "まちます",
+   "grp": 1,
+   "kind": "ta",
+   "out": "まった"
+  },
+  {
+   "masu": "まちます",
+   "grp": 1,
+   "kind": "potential",
+   "out": "まてる"
+  },
+  {
+   "masu": "まちます",
+   "grp": 1,
+   "kind": "volitional",
+   "out": "まとう"
+  },
+  {
+   "masu": "まちます",
+   "grp": 1,
+   "kind": "imperative",
+   "out": "まて"
+  },
+  {
+   "masu": "まちます",
+   "grp": 1,
+   "kind": "passive",
+   "out": "またれる"
+  },
+  {
+   "masu": "まちます",
+   "grp": 1,
+   "kind": "causative",
+   "out": "またせる"
+  },
+  {
+   "masu": "まちます",
+   "grp": 1,
+   "kind": "ba",
+   "out": "まてば"
+  },
+  {
+   "masu": "まちます",
+   "grp": 1,
+   "kind": "prohibitive",
+   "out": "まつな"
+  },
+  {
+   "masu": "まちます",
+   "grp": 1,
+   "kind": "masu_neg",
+   "out": "まちません"
+  },
+  {
+   "masu": "まちます",
+   "grp": 1,
+   "kind": "masu_ta",
+   "out": "まちました"
+  },
+  {
+   "masu": "まちます",
+   "grp": 1,
+   "kind": "nakatta",
+   "out": "またなかった"
+  },
+  {
+   "masu": "まちます",
+   "grp": 1,
+   "kind": "bogus",
+   "out": ""
+  },
+  {
+   "masu": "しにます",
+   "grp": 1,
+   "kind": "dict",
+   "out": "しぬ"
+  },
+  {
+   "masu": "しにます",
+   "grp": 1,
+   "kind": "nai",
+   "out": "しなない"
+  },
+  {
+   "masu": "しにます",
+   "grp": 1,
+   "kind": "te",
+   "out": "しんで"
+  },
+  {
+   "masu": "しにます",
+   "grp": 1,
+   "kind": "ta",
+   "out": "しんだ"
+  },
+  {
+   "masu": "しにます",
+   "grp": 1,
+   "kind": "potential",
+   "out": "しねる"
+  },
+  {
+   "masu": "しにます",
+   "grp": 1,
+   "kind": "volitional",
+   "out": "しのう"
+  },
+  {
+   "masu": "しにます",
+   "grp": 1,
+   "kind": "imperative",
+   "out": "しね"
+  },
+  {
+   "masu": "しにます",
+   "grp": 1,
+   "kind": "passive",
+   "out": "しなれる"
+  },
+  {
+   "masu": "しにます",
+   "grp": 1,
+   "kind": "causative",
+   "out": "しなせる"
+  },
+  {
+   "masu": "しにます",
+   "grp": 1,
+   "kind": "ba",
+   "out": "しねば"
+  },
+  {
+   "masu": "しにます",
+   "grp": 1,
+   "kind": "prohibitive",
+   "out": "しぬな"
+  },
+  {
+   "masu": "しにます",
+   "grp": 1,
+   "kind": "masu_neg",
+   "out": "しにません"
+  },
+  {
+   "masu": "しにます",
+   "grp": 1,
+   "kind": "masu_ta",
+   "out": "しにました"
+  },
+  {
+   "masu": "しにます",
+   "grp": 1,
+   "kind": "nakatta",
+   "out": "しななかった"
+  },
+  {
+   "masu": "しにます",
+   "grp": 1,
+   "kind": "bogus",
+   "out": ""
+  },
+  {
+   "masu": "あそびます",
+   "grp": 1,
+   "kind": "dict",
+   "out": "あそぶ"
+  },
+  {
+   "masu": "あそびます",
+   "grp": 1,
+   "kind": "nai",
+   "out": "あそばない"
+  },
+  {
+   "masu": "あそびます",
+   "grp": 1,
+   "kind": "te",
+   "out": "あそんで"
+  },
+  {
+   "masu": "あそびます",
+   "grp": 1,
+   "kind": "ta",
+   "out": "あそんだ"
+  },
+  {
+   "masu": "あそびます",
+   "grp": 1,
+   "kind": "potential",
+   "out": "あそべる"
+  },
+  {
+   "masu": "あそびます",
+   "grp": 1,
+   "kind": "volitional",
+   "out": "あそぼう"
+  },
+  {
+   "masu": "あそびます",
+   "grp": 1,
+   "kind": "imperative",
+   "out": "あそべ"
+  },
+  {
+   "masu": "あそびます",
+   "grp": 1,
+   "kind": "passive",
+   "out": "あそばれる"
+  },
+  {
+   "masu": "あそびます",
+   "grp": 1,
+   "kind": "causative",
+   "out": "あそばせる"
+  },
+  {
+   "masu": "あそびます",
+   "grp": 1,
+   "kind": "ba",
+   "out": "あそべば"
+  },
+  {
+   "masu": "あそびます",
+   "grp": 1,
+   "kind": "prohibitive",
+   "out": "あそぶな"
+  },
+  {
+   "masu": "あそびます",
+   "grp": 1,
+   "kind": "masu_neg",
+   "out": "あそびません"
+  },
+  {
+   "masu": "あそびます",
+   "grp": 1,
+   "kind": "masu_ta",
+   "out": "あそびました"
+  },
+  {
+   "masu": "あそびます",
+   "grp": 1,
+   "kind": "nakatta",
+   "out": "あそばなかった"
+  },
+  {
+   "masu": "あそびます",
+   "grp": 1,
+   "kind": "bogus",
+   "out": ""
+  },
+  {
+   "masu": "およぎます",
+   "grp": 1,
+   "kind": "dict",
+   "out": "およぐ"
+  },
+  {
+   "masu": "およぎます",
+   "grp": 1,
+   "kind": "nai",
+   "out": "およがない"
+  },
+  {
+   "masu": "およぎます",
+   "grp": 1,
+   "kind": "te",
+   "out": "およいで"
+  },
+  {
+   "masu": "およぎます",
+   "grp": 1,
+   "kind": "ta",
+   "out": "およいだ"
+  },
+  {
+   "masu": "およぎます",
+   "grp": 1,
+   "kind": "potential",
+   "out": "およげる"
+  },
+  {
+   "masu": "およぎます",
+   "grp": 1,
+   "kind": "volitional",
+   "out": "およごう"
+  },
+  {
+   "masu": "およぎます",
+   "grp": 1,
+   "kind": "imperative",
+   "out": "およげ"
+  },
+  {
+   "masu": "およぎます",
+   "grp": 1,
+   "kind": "passive",
+   "out": "およがれる"
+  },
+  {
+   "masu": "およぎます",
+   "grp": 1,
+   "kind": "causative",
+   "out": "およがせる"
+  },
+  {
+   "masu": "およぎます",
+   "grp": 1,
+   "kind": "ba",
+   "out": "およげば"
+  },
+  {
+   "masu": "およぎます",
+   "grp": 1,
+   "kind": "prohibitive",
+   "out": "およぐな"
+  },
+  {
+   "masu": "およぎます",
+   "grp": 1,
+   "kind": "masu_neg",
+   "out": "およぎません"
+  },
+  {
+   "masu": "およぎます",
+   "grp": 1,
+   "kind": "masu_ta",
+   "out": "およぎました"
+  },
+  {
+   "masu": "およぎます",
+   "grp": 1,
+   "kind": "nakatta",
+   "out": "およがなかった"
+  },
+  {
+   "masu": "およぎます",
+   "grp": 1,
+   "kind": "bogus",
+   "out": ""
+  },
+  {
+   "masu": "かいます",
+   "grp": 1,
+   "kind": "dict",
+   "out": "かう"
+  },
+  {
+   "masu": "かいます",
+   "grp": 1,
+   "kind": "nai",
+   "out": "かわない"
+  },
+  {
+   "masu": "かいます",
+   "grp": 1,
+   "kind": "te",
+   "out": "かって"
+  },
+  {
+   "masu": "かいます",
+   "grp": 1,
+   "kind": "ta",
+   "out": "かった"
+  },
+  {
+   "masu": "かいます",
+   "grp": 1,
+   "kind": "potential",
+   "out": "かえる"
+  },
+  {
+   "masu": "かいます",
+   "grp": 1,
+   "kind": "volitional",
+   "out": "かおう"
+  },
+  {
+   "masu": "かいます",
+   "grp": 1,
+   "kind": "imperative",
+   "out": "かえ"
+  },
+  {
+   "masu": "かいます",
+   "grp": 1,
+   "kind": "passive",
+   "out": "かわれる"
+  },
+  {
+   "masu": "かいます",
+   "grp": 1,
+   "kind": "causative",
+   "out": "かわせる"
+  },
+  {
+   "masu": "かいます",
+   "grp": 1,
+   "kind": "ba",
+   "out": "かえば"
+  },
+  {
+   "masu": "かいます",
+   "grp": 1,
+   "kind": "prohibitive",
+   "out": "かうな"
+  },
+  {
+   "masu": "かいます",
+   "grp": 1,
+   "kind": "masu_neg",
+   "out": "かいません"
+  },
+  {
+   "masu": "かいます",
+   "grp": 1,
+   "kind": "masu_ta",
+   "out": "かいました"
+  },
+  {
+   "masu": "かいます",
+   "grp": 1,
+   "kind": "nakatta",
+   "out": "かわなかった"
+  },
+  {
+   "masu": "かいます",
+   "grp": 1,
+   "kind": "bogus",
+   "out": ""
+  },
+  {
+   "masu": "とります",
+   "grp": 1,
+   "kind": "dict",
+   "out": "とる"
+  },
+  {
+   "masu": "とります",
+   "grp": 1,
+   "kind": "nai",
+   "out": "とらない"
+  },
+  {
+   "masu": "とります",
+   "grp": 1,
+   "kind": "te",
+   "out": "とって"
+  },
+  {
+   "masu": "とります",
+   "grp": 1,
+   "kind": "ta",
+   "out": "とった"
+  },
+  {
+   "masu": "とります",
+   "grp": 1,
+   "kind": "potential",
+   "out": "とれる"
+  },
+  {
+   "masu": "とります",
+   "grp": 1,
+   "kind": "volitional",
+   "out": "とろう"
+  },
+  {
+   "masu": "とります",
+   "grp": 1,
+   "kind": "imperative",
+   "out": "とれ"
+  },
+  {
+   "masu": "とります",
+   "grp": 1,
+   "kind": "passive",
+   "out": "とられる"
+  },
+  {
+   "masu": "とります",
+   "grp": 1,
+   "kind": "causative",
+   "out": "とらせる"
+  },
+  {
+   "masu": "とります",
+   "grp": 1,
+   "kind": "ba",
+   "out": "とれば"
+  },
+  {
+   "masu": "とります",
+   "grp": 1,
+   "kind": "prohibitive",
+   "out": "とるな"
+  },
+  {
+   "masu": "とります",
+   "grp": 1,
+   "kind": "masu_neg",
+   "out": "とりません"
+  },
+  {
+   "masu": "とります",
+   "grp": 1,
+   "kind": "masu_ta",
+   "out": "とりました"
+  },
+  {
+   "masu": "とります",
+   "grp": 1,
+   "kind": "nakatta",
+   "out": "とらなかった"
+  },
+  {
+   "masu": "とります",
+   "grp": 1,
+   "kind": "bogus",
+   "out": ""
+  },
+  {
+   "masu": "あります",
+   "grp": 1,
+   "kind": "dict",
+   "out": "ある"
+  },
+  {
+   "masu": "あります",
+   "grp": 1,
+   "kind": "nai",
+   "out": "ない"
+  },
+  {
+   "masu": "あります",
+   "grp": 1,
+   "kind": "te",
+   "out": "あって"
+  },
+  {
+   "masu": "あります",
+   "grp": 1,
+   "kind": "ta",
+   "out": "あった"
+  },
+  {
+   "masu": "あります",
+   "grp": 1,
+   "kind": "potential",
+   "out": ""
+  },
+  {
+   "masu": "あります",
+   "grp": 1,
+   "kind": "volitional",
+   "out": ""
+  },
+  {
+   "masu": "あります",
+   "grp": 1,
+   "kind": "imperative",
+   "out": ""
+  },
+  {
+   "masu": "あります",
+   "grp": 1,
+   "kind": "passive",
+   "out": ""
+  },
+  {
+   "masu": "あります",
+   "grp": 1,
+   "kind": "causative",
+   "out": ""
+  },
+  {
+   "masu": "あります",
+   "grp": 1,
+   "kind": "ba",
+   "out": "あれば"
+  },
+  {
+   "masu": "あります",
+   "grp": 1,
+   "kind": "prohibitive",
+   "out": "あるな"
+  },
+  {
+   "masu": "あります",
+   "grp": 1,
+   "kind": "masu_neg",
+   "out": "ありません"
+  },
+  {
+   "masu": "あります",
+   "grp": 1,
+   "kind": "masu_ta",
+   "out": "ありました"
+  },
+  {
+   "masu": "あります",
+   "grp": 1,
+   "kind": "nakatta",
+   "out": "なかった"
+  },
+  {
+   "masu": "あります",
+   "grp": 1,
+   "kind": "bogus",
+   "out": ""
+  },
+  {
+   "masu": "行きます",
+   "grp": 1,
+   "kind": "dict",
+   "out": "行く"
+  },
+  {
+   "masu": "行きます",
+   "grp": 1,
+   "kind": "nai",
+   "out": "行かない"
+  },
+  {
+   "masu": "行きます",
+   "grp": 1,
+   "kind": "te",
+   "out": "行って"
+  },
+  {
+   "masu": "行きます",
+   "grp": 1,
+   "kind": "ta",
+   "out": "行った"
+  },
+  {
+   "masu": "行きます",
+   "grp": 1,
+   "kind": "potential",
+   "out": "行ける"
+  },
+  {
+   "masu": "行きます",
+   "grp": 1,
+   "kind": "volitional",
+   "out": "行こう"
+  },
+  {
+   "masu": "行きます",
+   "grp": 1,
+   "kind": "imperative",
+   "out": "行け"
+  },
+  {
+   "masu": "行きます",
+   "grp": 1,
+   "kind": "passive",
+   "out": "行かれる"
+  },
+  {
+   "masu": "行きます",
+   "grp": 1,
+   "kind": "causative",
+   "out": "行かせる"
+  },
+  {
+   "masu": "行きます",
+   "grp": 1,
+   "kind": "ba",
+   "out": "行けば"
+  },
+  {
+   "masu": "行きます",
+   "grp": 1,
+   "kind": "prohibitive",
+   "out": "行くな"
+  },
+  {
+   "masu": "行きます",
+   "grp": 1,
+   "kind": "masu_neg",
+   "out": "行きません"
+  },
+  {
+   "masu": "行きます",
+   "grp": 1,
+   "kind": "masu_ta",
+   "out": "行きました"
+  },
+  {
+   "masu": "行きます",
+   "grp": 1,
+   "kind": "nakatta",
+   "out": "行かなかった"
+  },
+  {
+   "masu": "行きます",
+   "grp": 1,
+   "kind": "bogus",
+   "out": ""
+  },
+  {
+   "masu": "逝きます",
+   "grp": 1,
+   "kind": "dict",
+   "out": "逝く"
+  },
+  {
+   "masu": "逝きます",
+   "grp": 1,
+   "kind": "nai",
+   "out": "逝かない"
+  },
+  {
+   "masu": "逝きます",
+   "grp": 1,
+   "kind": "te",
+   "out": "逝って"
+  },
+  {
+   "masu": "逝きます",
+   "grp": 1,
+   "kind": "ta",
+   "out": "逝った"
+  },
+  {
+   "masu": "逝きます",
+   "grp": 1,
+   "kind": "potential",
+   "out": "逝ける"
+  },
+  {
+   "masu": "逝きます",
+   "grp": 1,
+   "kind": "volitional",
+   "out": "逝こう"
+  },
+  {
+   "masu": "逝きます",
+   "grp": 1,
+   "kind": "imperative",
+   "out": "逝け"
+  },
+  {
+   "masu": "逝きます",
+   "grp": 1,
+   "kind": "passive",
+   "out": "逝かれる"
+  },
+  {
+   "masu": "逝きます",
+   "grp": 1,
+   "kind": "causative",
+   "out": "逝かせる"
+  },
+  {
+   "masu": "逝きます",
+   "grp": 1,
+   "kind": "ba",
+   "out": "逝けば"
+  },
+  {
+   "masu": "逝きます",
+   "grp": 1,
+   "kind": "prohibitive",
+   "out": "逝くな"
+  },
+  {
+   "masu": "逝きます",
+   "grp": 1,
+   "kind": "masu_neg",
+   "out": "逝きません"
+  },
+  {
+   "masu": "逝きます",
+   "grp": 1,
+   "kind": "masu_ta",
+   "out": "逝きました"
+  },
+  {
+   "masu": "逝きます",
+   "grp": 1,
+   "kind": "nakatta",
+   "out": "逝かなかった"
+  },
+  {
+   "masu": "逝きます",
+   "grp": 1,
+   "kind": "bogus",
+   "out": ""
+  },
+  {
+   "masu": "たべます",
+   "grp": 2,
+   "kind": "dict",
+   "out": "たべる"
+  },
+  {
+   "masu": "たべます",
+   "grp": 2,
+   "kind": "nai",
+   "out": "たべない"
+  },
+  {
+   "masu": "たべます",
+   "grp": 2,
+   "kind": "te",
+   "out": "たべて"
+  },
+  {
+   "masu": "たべます",
+   "grp": 2,
+   "kind": "ta",
+   "out": "たべた"
+  },
+  {
+   "masu": "たべます",
+   "grp": 2,
+   "kind": "potential",
+   "out": "たべられる"
+  },
+  {
+   "masu": "たべます",
+   "grp": 2,
+   "kind": "volitional",
+   "out": "たべよう"
+  },
+  {
+   "masu": "たべます",
+   "grp": 2,
+   "kind": "imperative",
+   "out": "たべろ"
+  },
+  {
+   "masu": "たべます",
+   "grp": 2,
+   "kind": "passive",
+   "out": "たべられる"
+  },
+  {
+   "masu": "たべます",
+   "grp": 2,
+   "kind": "causative",
+   "out": "たべさせる"
+  },
+  {
+   "masu": "たべます",
+   "grp": 2,
+   "kind": "ba",
+   "out": "たべれば"
+  },
+  {
+   "masu": "たべます",
+   "grp": 2,
+   "kind": "prohibitive",
+   "out": "たべるな"
+  },
+  {
+   "masu": "たべます",
+   "grp": 2,
+   "kind": "masu_neg",
+   "out": "たべません"
+  },
+  {
+   "masu": "たべます",
+   "grp": 2,
+   "kind": "masu_ta",
+   "out": "たべました"
+  },
+  {
+   "masu": "たべます",
+   "grp": 2,
+   "kind": "nakatta",
+   "out": "たべなかった"
+  },
+  {
+   "masu": "たべます",
+   "grp": 2,
+   "kind": "bogus",
+   "out": ""
+  },
+  {
+   "masu": "みます",
+   "grp": 2,
+   "kind": "dict",
+   "out": "みる"
+  },
+  {
+   "masu": "みます",
+   "grp": 2,
+   "kind": "nai",
+   "out": "みない"
+  },
+  {
+   "masu": "みます",
+   "grp": 2,
+   "kind": "te",
+   "out": "みて"
+  },
+  {
+   "masu": "みます",
+   "grp": 2,
+   "kind": "ta",
+   "out": "みた"
+  },
+  {
+   "masu": "みます",
+   "grp": 2,
+   "kind": "potential",
+   "out": "みられる"
+  },
+  {
+   "masu": "みます",
+   "grp": 2,
+   "kind": "volitional",
+   "out": "みよう"
+  },
+  {
+   "masu": "みます",
+   "grp": 2,
+   "kind": "imperative",
+   "out": "みろ"
+  },
+  {
+   "masu": "みます",
+   "grp": 2,
+   "kind": "passive",
+   "out": "みられる"
+  },
+  {
+   "masu": "みます",
+   "grp": 2,
+   "kind": "causative",
+   "out": "みさせる"
+  },
+  {
+   "masu": "みます",
+   "grp": 2,
+   "kind": "ba",
+   "out": "みれば"
+  },
+  {
+   "masu": "みます",
+   "grp": 2,
+   "kind": "prohibitive",
+   "out": "みるな"
+  },
+  {
+   "masu": "みます",
+   "grp": 2,
+   "kind": "masu_neg",
+   "out": "みません"
+  },
+  {
+   "masu": "みます",
+   "grp": 2,
+   "kind": "masu_ta",
+   "out": "みました"
+  },
+  {
+   "masu": "みます",
+   "grp": 2,
+   "kind": "nakatta",
+   "out": "みなかった"
+  },
+  {
+   "masu": "みます",
+   "grp": 2,
+   "kind": "bogus",
+   "out": ""
+  },
+  {
+   "masu": "おきます",
+   "grp": 2,
+   "kind": "dict",
+   "out": "おきる"
+  },
+  {
+   "masu": "おきます",
+   "grp": 2,
+   "kind": "nai",
+   "out": "おきない"
+  },
+  {
+   "masu": "おきます",
+   "grp": 2,
+   "kind": "te",
+   "out": "おきて"
+  },
+  {
+   "masu": "おきます",
+   "grp": 2,
+   "kind": "ta",
+   "out": "おきた"
+  },
+  {
+   "masu": "おきます",
+   "grp": 2,
+   "kind": "potential",
+   "out": "おきられる"
+  },
+  {
+   "masu": "おきます",
+   "grp": 2,
+   "kind": "volitional",
+   "out": "おきよう"
+  },
+  {
+   "masu": "おきます",
+   "grp": 2,
+   "kind": "imperative",
+   "out": "おきろ"
+  },
+  {
+   "masu": "おきます",
+   "grp": 2,
+   "kind": "passive",
+   "out": "おきられる"
+  },
+  {
+   "masu": "おきます",
+   "grp": 2,
+   "kind": "causative",
+   "out": "おきさせる"
+  },
+  {
+   "masu": "おきます",
+   "grp": 2,
+   "kind": "ba",
+   "out": "おきれば"
+  },
+  {
+   "masu": "おきます",
+   "grp": 2,
+   "kind": "prohibitive",
+   "out": "おきるな"
+  },
+  {
+   "masu": "おきます",
+   "grp": 2,
+   "kind": "masu_neg",
+   "out": "おきません"
+  },
+  {
+   "masu": "おきます",
+   "grp": 2,
+   "kind": "masu_ta",
+   "out": "おきました"
+  },
+  {
+   "masu": "おきます",
+   "grp": 2,
+   "kind": "nakatta",
+   "out": "おきなかった"
+  },
+  {
+   "masu": "おきます",
+   "grp": 2,
+   "kind": "bogus",
+   "out": ""
+  },
+  {
+   "masu": "食べます",
+   "grp": 2,
+   "kind": "dict",
+   "out": "食べる"
+  },
+  {
+   "masu": "食べます",
+   "grp": 2,
+   "kind": "nai",
+   "out": "食べない"
+  },
+  {
+   "masu": "食べます",
+   "grp": 2,
+   "kind": "te",
+   "out": "食べて"
+  },
+  {
+   "masu": "食べます",
+   "grp": 2,
+   "kind": "ta",
+   "out": "食べた"
+  },
+  {
+   "masu": "食べます",
+   "grp": 2,
+   "kind": "potential",
+   "out": "食べられる"
+  },
+  {
+   "masu": "食べます",
+   "grp": 2,
+   "kind": "volitional",
+   "out": "食べよう"
+  },
+  {
+   "masu": "食べます",
+   "grp": 2,
+   "kind": "imperative",
+   "out": "食べろ"
+  },
+  {
+   "masu": "食べます",
+   "grp": 2,
+   "kind": "passive",
+   "out": "食べられる"
+  },
+  {
+   "masu": "食べます",
+   "grp": 2,
+   "kind": "causative",
+   "out": "食べさせる"
+  },
+  {
+   "masu": "食べます",
+   "grp": 2,
+   "kind": "ba",
+   "out": "食べれば"
+  },
+  {
+   "masu": "食べます",
+   "grp": 2,
+   "kind": "prohibitive",
+   "out": "食べるな"
+  },
+  {
+   "masu": "食べます",
+   "grp": 2,
+   "kind": "masu_neg",
+   "out": "食べません"
+  },
+  {
+   "masu": "食べます",
+   "grp": 2,
+   "kind": "masu_ta",
+   "out": "食べました"
+  },
+  {
+   "masu": "食べます",
+   "grp": 2,
+   "kind": "nakatta",
+   "out": "食べなかった"
+  },
+  {
+   "masu": "食べます",
+   "grp": 2,
+   "kind": "bogus",
+   "out": ""
+  },
+  {
+   "masu": "します",
+   "grp": 3,
+   "kind": "dict",
+   "out": "する"
+  },
+  {
+   "masu": "します",
+   "grp": 3,
+   "kind": "nai",
+   "out": "しない"
+  },
+  {
+   "masu": "します",
+   "grp": 3,
+   "kind": "te",
+   "out": "して"
+  },
+  {
+   "masu": "します",
+   "grp": 3,
+   "kind": "ta",
+   "out": "した"
+  },
+  {
+   "masu": "します",
+   "grp": 3,
+   "kind": "potential",
+   "out": "できる"
+  },
+  {
+   "masu": "します",
+   "grp": 3,
+   "kind": "volitional",
+   "out": "しよう"
+  },
+  {
+   "masu": "します",
+   "grp": 3,
+   "kind": "imperative",
+   "out": "しろ"
+  },
+  {
+   "masu": "します",
+   "grp": 3,
+   "kind": "passive",
+   "out": "される"
+  },
+  {
+   "masu": "します",
+   "grp": 3,
+   "kind": "causative",
+   "out": "させる"
+  },
+  {
+   "masu": "します",
+   "grp": 3,
+   "kind": "ba",
+   "out": "すれば"
+  },
+  {
+   "masu": "します",
+   "grp": 3,
+   "kind": "prohibitive",
+   "out": "するな"
+  },
+  {
+   "masu": "します",
+   "grp": 3,
+   "kind": "masu_neg",
+   "out": "しません"
+  },
+  {
+   "masu": "します",
+   "grp": 3,
+   "kind": "masu_ta",
+   "out": "しました"
+  },
+  {
+   "masu": "します",
+   "grp": 3,
+   "kind": "nakatta",
+   "out": "しなかった"
+  },
+  {
+   "masu": "します",
+   "grp": 3,
+   "kind": "bogus",
+   "out": ""
+  },
+  {
+   "masu": "べんきょうします",
+   "grp": 3,
+   "kind": "dict",
+   "out": "べんきょうする"
+  },
+  {
+   "masu": "べんきょうします",
+   "grp": 3,
+   "kind": "nai",
+   "out": "べんきょうしない"
+  },
+  {
+   "masu": "べんきょうします",
+   "grp": 3,
+   "kind": "te",
+   "out": "べんきょうして"
+  },
+  {
+   "masu": "べんきょうします",
+   "grp": 3,
+   "kind": "ta",
+   "out": "べんきょうした"
+  },
+  {
+   "masu": "べんきょうします",
+   "grp": 3,
+   "kind": "potential",
+   "out": "べんきょうできる"
+  },
+  {
+   "masu": "べんきょうします",
+   "grp": 3,
+   "kind": "volitional",
+   "out": "べんきょうしよう"
+  },
+  {
+   "masu": "べんきょうします",
+   "grp": 3,
+   "kind": "imperative",
+   "out": "べんきょうしろ"
+  },
+  {
+   "masu": "べんきょうします",
+   "grp": 3,
+   "kind": "passive",
+   "out": "べんきょうされる"
+  },
+  {
+   "masu": "べんきょうします",
+   "grp": 3,
+   "kind": "causative",
+   "out": "べんきょうさせる"
+  },
+  {
+   "masu": "べんきょうします",
+   "grp": 3,
+   "kind": "ba",
+   "out": "べんきょうすれば"
+  },
+  {
+   "masu": "べんきょうします",
+   "grp": 3,
+   "kind": "prohibitive",
+   "out": "べんきょうするな"
+  },
+  {
+   "masu": "べんきょうします",
+   "grp": 3,
+   "kind": "masu_neg",
+   "out": "べんきょうしません"
+  },
+  {
+   "masu": "べんきょうします",
+   "grp": 3,
+   "kind": "masu_ta",
+   "out": "べんきょうしました"
+  },
+  {
+   "masu": "べんきょうします",
+   "grp": 3,
+   "kind": "nakatta",
+   "out": "べんきょうしなかった"
+  },
+  {
+   "masu": "べんきょうします",
+   "grp": 3,
+   "kind": "bogus",
+   "out": ""
+  },
+  {
+   "masu": "勉強します",
+   "grp": 3,
+   "kind": "dict",
+   "out": "勉強する"
+  },
+  {
+   "masu": "勉強します",
+   "grp": 3,
+   "kind": "nai",
+   "out": "勉強しない"
+  },
+  {
+   "masu": "勉強します",
+   "grp": 3,
+   "kind": "te",
+   "out": "勉強して"
+  },
+  {
+   "masu": "勉強します",
+   "grp": 3,
+   "kind": "ta",
+   "out": "勉強した"
+  },
+  {
+   "masu": "勉強します",
+   "grp": 3,
+   "kind": "potential",
+   "out": "勉強できる"
+  },
+  {
+   "masu": "勉強します",
+   "grp": 3,
+   "kind": "volitional",
+   "out": "勉強しよう"
+  },
+  {
+   "masu": "勉強します",
+   "grp": 3,
+   "kind": "imperative",
+   "out": "勉強しろ"
+  },
+  {
+   "masu": "勉強します",
+   "grp": 3,
+   "kind": "passive",
+   "out": "勉強される"
+  },
+  {
+   "masu": "勉強します",
+   "grp": 3,
+   "kind": "causative",
+   "out": "勉強させる"
+  },
+  {
+   "masu": "勉強します",
+   "grp": 3,
+   "kind": "ba",
+   "out": "勉強すれば"
+  },
+  {
+   "masu": "勉強します",
+   "grp": 3,
+   "kind": "prohibitive",
+   "out": "勉強するな"
+  },
+  {
+   "masu": "勉強します",
+   "grp": 3,
+   "kind": "masu_neg",
+   "out": "勉強しません"
+  },
+  {
+   "masu": "勉強します",
+   "grp": 3,
+   "kind": "masu_ta",
+   "out": "勉強しました"
+  },
+  {
+   "masu": "勉強します",
+   "grp": 3,
+   "kind": "nakatta",
+   "out": "勉強しなかった"
+  },
+  {
+   "masu": "勉強します",
+   "grp": 3,
+   "kind": "bogus",
+   "out": ""
+  },
+  {
+   "masu": "きます",
+   "grp": 3,
+   "kind": "dict",
+   "out": "くる"
+  },
+  {
+   "masu": "きます",
+   "grp": 3,
+   "kind": "nai",
+   "out": "こない"
+  },
+  {
+   "masu": "きます",
+   "grp": 3,
+   "kind": "te",
+   "out": "きて"
+  },
+  {
+   "masu": "きます",
+   "grp": 3,
+   "kind": "ta",
+   "out": "きた"
+  },
+  {
+   "masu": "きます",
+   "grp": 3,
+   "kind": "potential",
+   "out": "こられる"
+  },
+  {
+   "masu": "きます",
+   "grp": 3,
+   "kind": "volitional",
+   "out": "こよう"
+  },
+  {
+   "masu": "きます",
+   "grp": 3,
+   "kind": "imperative",
+   "out": "こい"
+  },
+  {
+   "masu": "きます",
+   "grp": 3,
+   "kind": "passive",
+   "out": "こられる"
+  },
+  {
+   "masu": "きます",
+   "grp": 3,
+   "kind": "causative",
+   "out": "こさせる"
+  },
+  {
+   "masu": "きます",
+   "grp": 3,
+   "kind": "ba",
+   "out": "くれば"
+  },
+  {
+   "masu": "きます",
+   "grp": 3,
+   "kind": "prohibitive",
+   "out": "くるな"
+  },
+  {
+   "masu": "きます",
+   "grp": 3,
+   "kind": "masu_neg",
+   "out": "きません"
+  },
+  {
+   "masu": "きます",
+   "grp": 3,
+   "kind": "masu_ta",
+   "out": "きました"
+  },
+  {
+   "masu": "きます",
+   "grp": 3,
+   "kind": "nakatta",
+   "out": "こなかった"
+  },
+  {
+   "masu": "きます",
+   "grp": 3,
+   "kind": "bogus",
+   "out": ""
+  },
+  {
+   "masu": "来ます",
+   "grp": 3,
+   "kind": "dict",
+   "out": "来る"
+  },
+  {
+   "masu": "来ます",
+   "grp": 3,
+   "kind": "nai",
+   "out": "来ない"
+  },
+  {
+   "masu": "来ます",
+   "grp": 3,
+   "kind": "te",
+   "out": "来て"
+  },
+  {
+   "masu": "来ます",
+   "grp": 3,
+   "kind": "ta",
+   "out": "来た"
+  },
+  {
+   "masu": "来ます",
+   "grp": 3,
+   "kind": "potential",
+   "out": "来られる"
+  },
+  {
+   "masu": "来ます",
+   "grp": 3,
+   "kind": "volitional",
+   "out": "来よう"
+  },
+  {
+   "masu": "来ます",
+   "grp": 3,
+   "kind": "imperative",
+   "out": "来い"
+  },
+  {
+   "masu": "来ます",
+   "grp": 3,
+   "kind": "passive",
+   "out": "来られる"
+  },
+  {
+   "masu": "来ます",
+   "grp": 3,
+   "kind": "causative",
+   "out": "来させる"
+  },
+  {
+   "masu": "来ます",
+   "grp": 3,
+   "kind": "ba",
+   "out": "来れば"
+  },
+  {
+   "masu": "来ます",
+   "grp": 3,
+   "kind": "prohibitive",
+   "out": "来るな"
+  },
+  {
+   "masu": "来ます",
+   "grp": 3,
+   "kind": "masu_neg",
+   "out": "来ません"
+  },
+  {
+   "masu": "来ます",
+   "grp": 3,
+   "kind": "masu_ta",
+   "out": "来ました"
+  },
+  {
+   "masu": "来ます",
+   "grp": 3,
+   "kind": "nakatta",
+   "out": "来なかった"
+  },
+  {
+   "masu": "来ます",
+   "grp": 3,
+   "kind": "bogus",
+   "out": ""
+  },
+  {
+   "masu": "もってきます",
+   "grp": 3,
+   "kind": "dict",
+   "out": "もってくる"
+  },
+  {
+   "masu": "もってきます",
+   "grp": 3,
+   "kind": "nai",
+   "out": "もってこない"
+  },
+  {
+   "masu": "もってきます",
+   "grp": 3,
+   "kind": "te",
+   "out": "もってきて"
+  },
+  {
+   "masu": "もってきます",
+   "grp": 3,
+   "kind": "ta",
+   "out": "もってきた"
+  },
+  {
+   "masu": "もってきます",
+   "grp": 3,
+   "kind": "potential",
+   "out": "もってこられる"
+  },
+  {
+   "masu": "もってきます",
+   "grp": 3,
+   "kind": "volitional",
+   "out": "もってこよう"
+  },
+  {
+   "masu": "もってきます",
+   "grp": 3,
+   "kind": "imperative",
+   "out": "もってこい"
+  },
+  {
+   "masu": "もってきます",
+   "grp": 3,
+   "kind": "passive",
+   "out": "もってこられる"
+  },
+  {
+   "masu": "もってきます",
+   "grp": 3,
+   "kind": "causative",
+   "out": "もってこさせる"
+  },
+  {
+   "masu": "もってきます",
+   "grp": 3,
+   "kind": "ba",
+   "out": "もってくれば"
+  },
+  {
+   "masu": "もってきます",
+   "grp": 3,
+   "kind": "prohibitive",
+   "out": "もってくるな"
+  },
+  {
+   "masu": "もってきます",
+   "grp": 3,
+   "kind": "masu_neg",
+   "out": "もってきません"
+  },
+  {
+   "masu": "もってきます",
+   "grp": 3,
+   "kind": "masu_ta",
+   "out": "もってきました"
+  },
+  {
+   "masu": "もってきます",
+   "grp": 3,
+   "kind": "nakatta",
+   "out": "もってこなかった"
+  },
+  {
+   "masu": "もってきます",
+   "grp": 3,
+   "kind": "bogus",
+   "out": ""
+  },
+  {
+   "masu": "持って来ます",
+   "grp": 3,
+   "kind": "dict",
+   "out": "持って来る"
+  },
+  {
+   "masu": "持って来ます",
+   "grp": 3,
+   "kind": "nai",
+   "out": "持って来ない"
+  },
+  {
+   "masu": "持って来ます",
+   "grp": 3,
+   "kind": "te",
+   "out": "持って来て"
+  },
+  {
+   "masu": "持って来ます",
+   "grp": 3,
+   "kind": "ta",
+   "out": "持って来た"
+  },
+  {
+   "masu": "持って来ます",
+   "grp": 3,
+   "kind": "potential",
+   "out": "持って来られる"
+  },
+  {
+   "masu": "持って来ます",
+   "grp": 3,
+   "kind": "volitional",
+   "out": "持って来よう"
+  },
+  {
+   "masu": "持って来ます",
+   "grp": 3,
+   "kind": "imperative",
+   "out": "持って来い"
+  },
+  {
+   "masu": "持って来ます",
+   "grp": 3,
+   "kind": "passive",
+   "out": "持って来られる"
+  },
+  {
+   "masu": "持って来ます",
+   "grp": 3,
+   "kind": "causative",
+   "out": "持って来させる"
+  },
+  {
+   "masu": "持って来ます",
+   "grp": 3,
+   "kind": "ba",
+   "out": "持って来れば"
+  },
+  {
+   "masu": "持って来ます",
+   "grp": 3,
+   "kind": "prohibitive",
+   "out": "持って来るな"
+  },
+  {
+   "masu": "持って来ます",
+   "grp": 3,
+   "kind": "masu_neg",
+   "out": "持って来ません"
+  },
+  {
+   "masu": "持って来ます",
+   "grp": 3,
+   "kind": "masu_ta",
+   "out": "持って来ました"
+  },
+  {
+   "masu": "持って来ます",
+   "grp": 3,
+   "kind": "nakatta",
+   "out": "持って来なかった"
+  },
+  {
+   "masu": "持って来ます",
+   "grp": 3,
+   "kind": "bogus",
+   "out": ""
+  },
+  {
+   "masu": "",
+   "grp": 1,
+   "kind": "dict",
+   "out": ""
+  },
+  {
+   "masu": "",
+   "grp": 1,
+   "kind": "nai",
+   "out": ""
+  },
+  {
+   "masu": "",
+   "grp": 1,
+   "kind": "te",
+   "out": ""
+  },
+  {
+   "masu": "",
+   "grp": 1,
+   "kind": "ta",
+   "out": ""
+  },
+  {
+   "masu": "",
+   "grp": 1,
+   "kind": "potential",
+   "out": ""
+  },
+  {
+   "masu": "",
+   "grp": 1,
+   "kind": "volitional",
+   "out": ""
+  },
+  {
+   "masu": "",
+   "grp": 1,
+   "kind": "imperative",
+   "out": ""
+  },
+  {
+   "masu": "",
+   "grp": 1,
+   "kind": "passive",
+   "out": ""
+  },
+  {
+   "masu": "",
+   "grp": 1,
+   "kind": "causative",
+   "out": ""
+  },
+  {
+   "masu": "",
+   "grp": 1,
+   "kind": "ba",
+   "out": ""
+  },
+  {
+   "masu": "",
+   "grp": 1,
+   "kind": "prohibitive",
+   "out": ""
+  },
+  {
+   "masu": "",
+   "grp": 1,
+   "kind": "masu_neg",
+   "out": ""
+  },
+  {
+   "masu": "",
+   "grp": 1,
+   "kind": "masu_ta",
+   "out": ""
+  },
+  {
+   "masu": "",
+   "grp": 1,
+   "kind": "nakatta",
+   "out": ""
+  },
+  {
+   "masu": "",
+   "grp": 1,
+   "kind": "bogus",
+   "out": ""
+  },
+  {
+   "masu": "たべ",
+   "grp": 2,
+   "kind": "dict",
+   "out": ""
+  },
+  {
+   "masu": "たべ",
+   "grp": 2,
+   "kind": "nai",
+   "out": ""
+  },
+  {
+   "masu": "たべ",
+   "grp": 2,
+   "kind": "te",
+   "out": ""
+  },
+  {
+   "masu": "たべ",
+   "grp": 2,
+   "kind": "ta",
+   "out": ""
+  },
+  {
+   "masu": "たべ",
+   "grp": 2,
+   "kind": "potential",
+   "out": ""
+  },
+  {
+   "masu": "たべ",
+   "grp": 2,
+   "kind": "volitional",
+   "out": ""
+  },
+  {
+   "masu": "たべ",
+   "grp": 2,
+   "kind": "imperative",
+   "out": ""
+  },
+  {
+   "masu": "たべ",
+   "grp": 2,
+   "kind": "passive",
+   "out": ""
+  },
+  {
+   "masu": "たべ",
+   "grp": 2,
+   "kind": "causative",
+   "out": ""
+  },
+  {
+   "masu": "たべ",
+   "grp": 2,
+   "kind": "ba",
+   "out": ""
+  },
+  {
+   "masu": "たべ",
+   "grp": 2,
+   "kind": "prohibitive",
+   "out": ""
+  },
+  {
+   "masu": "たべ",
+   "grp": 2,
+   "kind": "masu_neg",
+   "out": ""
+  },
+  {
+   "masu": "たべ",
+   "grp": 2,
+   "kind": "masu_ta",
+   "out": ""
+  },
+  {
+   "masu": "たべ",
+   "grp": 2,
+   "kind": "nakatta",
+   "out": ""
+  },
+  {
+   "masu": "たべ",
+   "grp": 2,
+   "kind": "bogus",
+   "out": ""
+  },
+  {
+   "masu": "のみます",
+   "grp": 0,
+   "kind": "dict",
+   "out": ""
+  },
+  {
+   "masu": "のみます",
+   "grp": 0,
+   "kind": "nai",
+   "out": ""
+  },
+  {
+   "masu": "のみます",
+   "grp": 0,
+   "kind": "te",
+   "out": ""
+  },
+  {
+   "masu": "のみます",
+   "grp": 0,
+   "kind": "ta",
+   "out": ""
+  },
+  {
+   "masu": "のみます",
+   "grp": 0,
+   "kind": "potential",
+   "out": ""
+  },
+  {
+   "masu": "のみます",
+   "grp": 0,
+   "kind": "volitional",
+   "out": ""
+  },
+  {
+   "masu": "のみます",
+   "grp": 0,
+   "kind": "imperative",
+   "out": ""
+  },
+  {
+   "masu": "のみます",
+   "grp": 0,
+   "kind": "passive",
+   "out": ""
+  },
+  {
+   "masu": "のみます",
+   "grp": 0,
+   "kind": "causative",
+   "out": ""
+  },
+  {
+   "masu": "のみます",
+   "grp": 0,
+   "kind": "ba",
+   "out": ""
+  },
+  {
+   "masu": "のみます",
+   "grp": 0,
+   "kind": "prohibitive",
+   "out": ""
+  },
+  {
+   "masu": "のみます",
+   "grp": 0,
+   "kind": "masu_neg",
+   "out": "のみません"
+  },
+  {
+   "masu": "のみます",
+   "grp": 0,
+   "kind": "masu_ta",
+   "out": "のみました"
+  },
+  {
+   "masu": "のみます",
+   "grp": 0,
+   "kind": "nakatta",
+   "out": ""
+  },
+  {
+   "masu": "のみます",
+   "grp": 0,
+   "kind": "bogus",
+   "out": ""
+  },
+  {
+   "masu": "のみます",
+   "grp": 9,
+   "kind": "dict",
+   "out": ""
+  },
+  {
+   "masu": "のみます",
+   "grp": 9,
+   "kind": "nai",
+   "out": ""
+  },
+  {
+   "masu": "のみます",
+   "grp": 9,
+   "kind": "te",
+   "out": ""
+  },
+  {
+   "masu": "のみます",
+   "grp": 9,
+   "kind": "ta",
+   "out": ""
+  },
+  {
+   "masu": "のみます",
+   "grp": 9,
+   "kind": "potential",
+   "out": ""
+  },
+  {
+   "masu": "のみます",
+   "grp": 9,
+   "kind": "volitional",
+   "out": ""
+  },
+  {
+   "masu": "のみます",
+   "grp": 9,
+   "kind": "imperative",
+   "out": ""
+  },
+  {
+   "masu": "のみます",
+   "grp": 9,
+   "kind": "passive",
+   "out": ""
+  },
+  {
+   "masu": "のみます",
+   "grp": 9,
+   "kind": "causative",
+   "out": ""
+  },
+  {
+   "masu": "のみます",
+   "grp": 9,
+   "kind": "ba",
+   "out": ""
+  },
+  {
+   "masu": "のみます",
+   "grp": 9,
+   "kind": "prohibitive",
+   "out": ""
+  },
+  {
+   "masu": "のみます",
+   "grp": 9,
+   "kind": "masu_neg",
+   "out": "のみません"
+  },
+  {
+   "masu": "のみます",
+   "grp": 9,
+   "kind": "masu_ta",
+   "out": "のみました"
+  },
+  {
+   "masu": "のみます",
+   "grp": 9,
+   "kind": "nakatta",
+   "out": ""
+  },
+  {
+   "masu": "のみます",
+   "grp": 9,
+   "kind": "bogus",
+   "out": ""
+  }
+ ],
+ "m2d": [
+  {
+   "masu": "のみます",
+   "grp": 1,
+   "out": "のむ"
+  },
+  {
+   "masu": "かきます",
+   "grp": 1,
+   "out": "かく"
+  },
+  {
+   "masu": "いきます",
+   "grp": 1,
+   "out": "いく"
+  },
+  {
+   "masu": "はなします",
+   "grp": 1,
+   "out": "はなす"
+  },
+  {
+   "masu": "まちます",
+   "grp": 1,
+   "out": "まつ"
+  },
+  {
+   "masu": "しにます",
+   "grp": 1,
+   "out": "しぬ"
+  },
+  {
+   "masu": "あそびます",
+   "grp": 1,
+   "out": "あそぶ"
+  },
+  {
+   "masu": "およぎます",
+   "grp": 1,
+   "out": "およぐ"
+  },
+  {
+   "masu": "かいます",
+   "grp": 1,
+   "out": "かう"
+  },
+  {
+   "masu": "とります",
+   "grp": 1,
+   "out": "とる"
+  },
+  {
+   "masu": "あります",
+   "grp": 1,
+   "out": "ある"
+  },
+  {
+   "masu": "行きます",
+   "grp": 1,
+   "out": "行く"
+  },
+  {
+   "masu": "逝きます",
+   "grp": 1,
+   "out": "逝く"
+  },
+  {
+   "masu": "たべます",
+   "grp": 2,
+   "out": "たべる"
+  },
+  {
+   "masu": "みます",
+   "grp": 2,
+   "out": "みる"
+  },
+  {
+   "masu": "おきます",
+   "grp": 2,
+   "out": "おきる"
+  },
+  {
+   "masu": "食べます",
+   "grp": 2,
+   "out": "食べる"
+  },
+  {
+   "masu": "します",
+   "grp": 3,
+   "out": "する"
+  },
+  {
+   "masu": "べんきょうします",
+   "grp": 3,
+   "out": "べんきょうする"
+  },
+  {
+   "masu": "勉強します",
+   "grp": 3,
+   "out": "勉強する"
+  },
+  {
+   "masu": "きます",
+   "grp": 3,
+   "out": "くる"
+  },
+  {
+   "masu": "来ます",
+   "grp": 3,
+   "out": "来る"
+  },
+  {
+   "masu": "もってきます",
+   "grp": 3,
+   "out": "もってくる"
+  },
+  {
+   "masu": "持って来ます",
+   "grp": 3,
+   "out": "持って来る"
+  },
+  {
+   "masu": "",
+   "grp": 1,
+   "out": null
+  },
+  {
+   "masu": "たべ",
+   "grp": 2,
+   "out": null
+  },
+  {
+   "masu": "のみます",
+   "grp": 0,
+   "out": null
+  },
+  {
+   "masu": "のみます",
+   "grp": 9,
+   "out": null
+  }
+ ],
+ "d2m": [
+  {
+   "dict": "のむ",
+   "grp": 1,
+   "out": "のみます"
+  },
+  {
+   "dict": "かく",
+   "grp": 1,
+   "out": "かきます"
+  },
+  {
+   "dict": "たべる",
+   "grp": 2,
+   "out": "たべます"
+  },
+  {
+   "dict": "する",
+   "grp": 3,
+   "out": "します"
+  },
+  {
+   "dict": "勉強する",
+   "grp": 3,
+   "out": "勉強します"
+  },
+  {
+   "dict": "くる",
+   "grp": 3,
+   "out": "きます"
+  },
+  {
+   "dict": "来る",
+   "grp": 3,
+   "out": "来ます"
+  },
+  {
+   "dict": "持って来る",
+   "grp": 3,
+   "out": "持って来ます"
+  },
+  {
+   "dict": "あるく",
+   "grp": 1,
+   "out": "あるきます"
+  },
+  {
+   "dict": "",
+   "grp": 2,
+   "out": null
+  },
+  {
+   "dict": "x",
+   "grp": 1,
+   "out": null
+  },
+  {
+   "dict": "たべる",
+   "grp": 1,
+   "out": "たべります"
+  }
+ ],
+ "gl": [
+  {
+   "text": "丈夫 = chắc\n弾力＝đàn hồi\n  \n楽しい\n= x\na = b = c",
+   "out": [
+    {
+     "term": "丈夫",
+     "meaning": "chắc"
+    },
+    {
+     "term": "弾力",
+     "meaning": "đàn hồi"
+    },
+    {
+     "term": "楽しい",
+     "meaning": ""
+    },
+    {
+     "term": "= x",
+     "meaning": ""
+    },
+    {
+     "term": "a",
+     "meaning": "b = c"
+    }
+   ]
+  },
+  {
+   "text": "",
+   "out": []
+  },
+  {
+   "text": "x",
+   "out": [
+    {
+     "term": "x",
+     "meaning": ""
+    }
+   ]
+  }
+ ]
+}

@@ -91,7 +91,7 @@ class TrashView(ctk.CTkToplevel):
         self.tree = ttk.Treeview(tree_frame, columns=cols, show="headings",
                                   selectmode="extended", style="Trash.Treeview")
         heads = {"stt":"STT","type":"Loại","character":"Ký tự","meaning_vi":"Nghĩa VN",
-                 "jlpt_level":"JLPT","status":"Status","deleted_at":"Xóa lúc"}
+                 "jlpt_level":"JLPT","status":"Trạng thái","deleted_at":"Xóa lúc"}
         widths = {"stt":45,"type":55,"character":90,"meaning_vi":200,
                   "jlpt_level":60,"status":90,"deleted_at":140}
         for c in cols:

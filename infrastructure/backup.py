@@ -1,11 +1,15 @@
 """
 infrastructure/backup.py — Database backup and restore.
-Backup: copies japanese.db into a timestamped .zip alongside settings.json
+Backup: snapshots japanese.db (SQLite Backup API, an toàn với WAL) into a timestamped .zip alongside
+        settings.json (đã loại bỏ khoá Supabase)
 Restore: extracts .zip and replaces japanese.db
 Moved from utils/ (Stage: utils/ cleanup) since this does real file I/O.
 """
 import os
+import json
 import shutil
+import sqlite3
+import tempfile
 import zipfile
 import logging
 from datetime import datetime
@@ -15,6 +19,38 @@ logger = logging.getLogger(__name__)
 _DB_DIR = os.path.join(os.path.dirname(__file__), "..", "database")
 _DB_PATH      = os.path.normpath(os.path.join(_DB_DIR, "japanese.db"))
 _SETTINGS_PATH= os.path.normpath(os.path.join(_DB_DIR, "..", "settings.json"))
+
+
+# Các khoá chứa thông tin đăng nhập — KHÔNG đưa vào file backup (backup hay được gửi/lưu lên đám mây)
+_SECRET_SETTINGS = ("supabase_key", "supabase_url", "supabase_bucket", "supabase_db_filename",
+                    "cloud_url", "cloud_key", "cloud_email", "cloud_refresh_token")
+
+
+def _sqlite_snapshot(src_path: str, dest_path: str):
+    """Chụp bản sao NHẤT QUÁN bằng SQLite Backup API. Chép file .db thô là sai khi chế độ WAL
+    đang bật: dữ liệu mới nhất còn nằm trong file -wal nên bản chép thiếu (có thể rỗng)."""
+    src = sqlite3.connect(src_path)
+    try:
+        dst = sqlite3.connect(dest_path)
+        try:
+            src.backup(dst)
+        finally:
+            dst.close()
+    finally:
+        src.close()
+
+
+def _sanitized_settings_json() -> str | None:
+    if not os.path.exists(_SETTINGS_PATH):
+        return None
+    try:
+        with open(_SETTINGS_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        for k in _SECRET_SETTINGS:
+            data.pop(k, None)
+        return json.dumps(data, ensure_ascii=False, indent=2)
+    except Exception:
+        return None
 
 
 def create_backup(dest_dir: str) -> tuple[str, str]:
@@ -29,10 +65,14 @@ def create_backup(dest_dir: str) -> tuple[str, str]:
         filename = f"japanese_backup_{ts}.zip"
         filepath = os.path.join(dest_dir, filename)
 
-        with zipfile.ZipFile(filepath, "w", zipfile.ZIP_DEFLATED) as zf:
-            zf.write(_DB_PATH,      "japanese.db")
-            if os.path.exists(_SETTINGS_PATH):
-                zf.write(_SETTINGS_PATH, "settings.json")
+        with tempfile.TemporaryDirectory() as tmp, \
+                zipfile.ZipFile(filepath, "w", zipfile.ZIP_DEFLATED) as zf:
+            snap = os.path.join(tmp, "japanese.db")
+            _sqlite_snapshot(_DB_PATH, snap)
+            zf.write(snap, "japanese.db")
+            settings_json = _sanitized_settings_json()
+            if settings_json is not None:
+                zf.writestr("settings.json", settings_json)
 
         size_kb = os.path.getsize(filepath) // 1024
         logger.info(f"Backup created: {filepath} ({size_kb} KB)")
@@ -62,20 +102,56 @@ def restore_backup(zip_path: str) -> tuple[bool, str]:
     except Exception as e:
         return False, f"Không thể đọc file: {e}"
 
-    # Safety backup of current DB before overwriting
+    # Safety backup of current DB before overwriting (bằng Backup API, không chép file thô)
     safety_path = _DB_PATH + ".before_restore"
     try:
         if os.path.exists(_DB_PATH):
-            shutil.copy2(_DB_PATH, safety_path)
+            if os.path.exists(safety_path):
+                os.remove(safety_path)
+            _sqlite_snapshot(_DB_PATH, safety_path)
     except Exception as e:
         return False, f"Không thể tạo backup an toàn: {e}"
 
     try:
-        with zipfile.ZipFile(zip_path, "r") as zf:
-            zf.extract("japanese.db", os.path.dirname(_DB_PATH))
+        with tempfile.TemporaryDirectory() as tmp, zipfile.ZipFile(zip_path, "r") as zf:
+            extracted = os.path.join(tmp, "restore.db")
+            with zf.open("japanese.db") as src, open(extracted, "wb") as out:
+                shutil.copyfileobj(src, out)
+
+            # Kiểm tra file backup trước khi động vào DB đang dùng
+            chk = sqlite3.connect(extracted)
+            try:
+                ok = chk.execute("PRAGMA integrity_check").fetchone()[0]
+                has_cards = chk.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type='table' AND name='cards'").fetchone()
+            finally:
+                chk.close()
+            if ok != "ok" or not has_cards:
+                return False, "File backup bị hỏng hoặc không phải database của app — chưa thay đổi gì."
+
+            # Ghi đè nội dung DB đang dùng bằng Backup API (đi qua cơ chế khoá/WAL của SQLite).
+            # KHÔNG thay file thô: file -wal cũ sẽ bị áp lên bản khôi phục khi app thoát và
+            # làm bản khôi phục bị hủy (hoặc hỏng).
+            src = sqlite3.connect(extracted)
+            try:
+                dst = sqlite3.connect(_DB_PATH, timeout=10)
+                try:
+                    src.backup(dst)
+                finally:
+                    dst.close()
+            finally:
+                src.close()
+
+            # DB khôi phục mang theo mốc/bản gốc đồng bộ CŨ → nếu để nguyên, lần sync tới sẽ ghi đè bản khôi phục bằng trạng thái hiện tại
+            # trên máy chủ (vd thẻ đã xoá sau backup lại bị xoá tiếp). Đặt lại để bản khôi phục được coi là "chưa gửi".
+            try:
+                from infrastructure.cloud_sync import reset_sync_state
+                reset_sync_state(_DB_PATH)
+            except Exception as e:
+                logger.warning(f"reset_sync_state after restore failed: {e}")
+
             if "settings.json" in zf.namelist():
-                zf.extract("settings.json",
-                           os.path.dirname(_SETTINGS_PATH))
+                _restore_settings(json.loads(zf.read("settings.json").decode("utf-8")))
 
         logger.info(f"Restored from: {zip_path}")
         return True, (
@@ -84,14 +160,30 @@ def restore_backup(zip_path: str) -> tuple[bool, str]:
             f"Hãy khởi động lại app để áp dụng."
         )
     except Exception as e:
-        # Try to roll back
+        # Backup API ghi theo giao dịch nên lỗi giữa chừng không để DB nửa vời; vẫn thử trả về bản an toàn
         try:
             if os.path.exists(safety_path):
-                shutil.copy2(safety_path, _DB_PATH)
+                _sqlite_snapshot(safety_path, _DB_PATH)
         except Exception:
             pass
         logger.error(f"Restore failed: {e}")
         return False, f"Khôi phục thất bại: {e}"
+
+
+def _restore_settings(restored: dict):
+    """Khôi phục cài đặt giao diện nhưng GIỮ NGUYÊN cấu hình Supabase hiện tại của máy này."""
+    current = {}
+    try:
+        with open(_SETTINGS_PATH, "r", encoding="utf-8") as f:
+            current = json.load(f)
+    except Exception:
+        pass
+    merged = {k: v for k, v in restored.items() if k not in _SECRET_SETTINGS}
+    for k in _SECRET_SETTINGS:
+        if k in current:
+            merged[k] = current[k]
+    with open(_SETTINGS_PATH, "w", encoding="utf-8") as f:
+        json.dump(merged, f, ensure_ascii=False, indent=2)
 
 
 def list_backups(directory: str) -> list[dict]:

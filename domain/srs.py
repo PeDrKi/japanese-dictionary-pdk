@@ -52,24 +52,35 @@ def compute_srs_update(current_interval: int, current_ease: float, result: str):
     return new_interval, new_ease
 
 
-def next_status(current_status: str, result: str) -> str:
-    """
-    Card status state machine:
-        new      --correct--> learning
-        learning --correct--> known
-        known    --correct--> known      (stays)
-        known    --incorrect--> learning
-        anything else --incorrect--> new
+# ── Trạng thái theo SỐ LẦN HỌC (giống bản web / máy chủ: cột cards.study_count) ──
+# Trả lời đúng +1, trả lời sai −1 (không xuống dưới 0).
+# Chưa học = 0 · Đang học = 1–19 · Đã nhớ = từ 20 trở lên.
+KNOWN_AT = 20
 
-    Extracted from the SQL CASE expression that used to live inline in
-    database/_study.py's log_study(), so the rule can be read and tested
-    on its own instead of only being exercisable by running a real query.
-    """
-    if result == 'correct':
-        if current_status == 'new':
-            return 'learning'
-        return 'known'  # learning -> known, known -> known
-    else:
-        if current_status == 'known':
-            return 'learning'
-        return 'new'  # learning -> new, new -> new
+
+def next_count(count, result: str) -> int:
+    n = int(count or 0)
+    return n + 1 if result == 'correct' else max(0, n - 1)
+
+
+def status_from_count(count) -> str:
+    n = int(count or 0)
+    if n <= 0:
+        return 'new'
+    return 'learning' if n < KNOWN_AT else 'known'
+
+
+def count_for_status(status: str, current=0) -> int:
+    """Số lần học tương ứng khi thẻ được tạo/nhập với một trạng thái cho trước (vd CSV, thẻ mẫu)."""
+    n = int(current or 0)
+    if status == 'known':
+        return max(n, KNOWN_AT)
+    if status == 'learning':
+        return n if 1 <= n < KNOWN_AT else 1
+    return 0
+
+
+def next_status(current_status: str, result: str) -> str:
+    """Giữ lại cho tương thích: trạng thái sau một lượt ôn khi chỉ biết trạng thái (ước lượng từ số lần học tối thiểu)."""
+    base = {'new': 0, 'learning': 1, 'known': KNOWN_AT}.get(current_status, 0)
+    return status_from_count(next_count(base, result))

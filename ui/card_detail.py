@@ -7,7 +7,7 @@ from ui.kanji_decomposition_dialog import KanjiDecompositionDialog
 from infrastructure.media import open_with_default_app
 from domain.srs_display import format_due_info, format_ease_label
 from constants import (
-    CARD_TYPES, CARD_STATUSES, JLPT_LEVELS, JLPT_LEVELS_OPT,
+    CARD_TYPES, CARD_STATUSES, JLPT_LEVELS, JLPT_LEVELS_OPT, POS_LABELS,
     TYPE_LABELS, TYPE_LABELS_FULL, STATUS_COLORS, STATUS_LABELS,
     JLPT_COLORS, PALETTE, COLOR_GOLD, COLOR_RED, COLOR_GREEN,
     COLOR_TEAL, COLOR_PURPLE, COLOR_BLUE,
@@ -66,13 +66,13 @@ class CardDetail(ctk.CTkFrame):
         hdr.grid_propagate(False)
         hdr.grid_columnconfigure(0, weight=1)
 
-        self._title_lbl = ctk.CTkLabel(hdr, text="Chi tiết thẻ",
+        self._title_lbl = ctk.CTkLabel(hdr, text="Chi tiết",
                                        font=ctk.CTkFont(size=13, weight="bold"),
                                        anchor="w")
-        self._title_lbl.grid(row=0, column=0, padx=16, pady=14, sticky="w")
+        self._title_lbl.grid(row=0, column=0, padx=(12, 4), pady=14, sticky="w")
 
         btn_frame = ctk.CTkFrame(hdr, fg_color="transparent")
-        btn_frame.grid(row=0, column=1, padx=10)
+        btn_frame.grid(row=0, column=1, padx=(0, 6))
 
         self._fav_btn = ctk.CTkButton(
             btn_frame, text="☆", width=32, height=32, corner_radius=16,
@@ -137,7 +137,7 @@ class CardDetail(ctk.CTkFrame):
     def _show_empty(self):
         for w in self._scroll.winfo_children():
             w.destroy()
-        self._title_lbl.configure(text="Chi tiết thẻ")
+        self._title_lbl.configure(text="Chi tiết")
         self._fav_btn.configure(text="☆")
         self._decompose_btn.pack_forget()
         ctk.CTkLabel(self._scroll,
@@ -190,7 +190,8 @@ class CardDetail(ctk.CTkFrame):
 
         status  = c.get("status","new")
         s_color = STATUS_COLOR.get(status, "#6B7280")
-        ctk.CTkLabel(char_frame, text=f"  {status.upper()}  ",
+        from constants import STATUS_LABELS
+        ctk.CTkLabel(char_frame, text=f"  {STATUS_LABELS.get(status, status)} · {c.get('study_count') or 0} lần học  ",
                      font=ctk.CTkFont(size=10, weight="bold"),
                      fg_color=s_color, corner_radius=8,
                      text_color="white").pack(pady=(0,8))
@@ -224,6 +225,8 @@ class CardDetail(ctk.CTkFrame):
                 self._row(f, "Romaji", c["romaji"])
         elif t == TYPE_VOCAB:
             self._section(f, "📖 Cách đọc")
+            if c.get("pos") in POS_LABELS:
+                self._row(f, "Từ loại", POS_LABELS[c["pos"]], color="#4ECB85")
             if c.get("reading_kana"):
                 self._row(f, "Furigana", c["reading_kana"],
                           color="#3ECFCF", big=True)

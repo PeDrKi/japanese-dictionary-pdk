@@ -44,6 +44,27 @@ STATUS_LABELS = {
     STATUS_KNOWN:    "Đã nhớ",
 }
 
+# ── Từ loại (áp dụng cho thẻ từ vựng) — mã giống bản web ─────────────────────
+CARD_POS = ["noun", "verb", "verb1", "verb2", "verb3", "adj_i", "adj_na",
+            "pronoun", "particle", "adverb", "conjunction", "interjection"]
+POS_LABELS = {
+    "noun":   "Danh từ",
+    "verb":   "Động từ",
+    "verb1":  "Động từ nhóm 1",
+    "verb2":  "Động từ nhóm 2",
+    "verb3":  "Động từ nhóm 3",
+    "adj_i":  "Tính từ đuôi い",
+    "adj_na": "Tính từ đuôi な",
+    "pronoun": "Đại từ",
+    "particle": "Trợ từ",
+    "adverb": "Trạng từ",
+    "conjunction": "Liên từ",
+    "interjection": "Thán từ",
+}
+POS_SHORT = {"noun": "Danh từ", "verb": "Động từ", "verb1": "ĐT 1", "verb2": "ĐT 2", "verb3": "ĐT 3",
+             "adj_i": "TT い", "adj_na": "TT な", "pronoun": "Đại từ", "particle": "Trợ từ",
+             "adverb": "Trạng từ", "conjunction": "Liên từ", "interjection": "Thán từ"}
+
 # ── JLPT levels ───────────────────────────────────────────────────────────────
 JLPT_LEVELS      = ["N5", "N4", "N3", "N2", "N1"]
 JLPT_LEVELS_OPT  = [""] + JLPT_LEVELS   # includes blank for "no level"
@@ -91,6 +112,54 @@ KB_DELETE      = "<Delete>"
 KB_SELECT_ALL  = "<Control-a>"
 KB_REFRESH     = "<F5>"
 KB_TOGGLE_KEYBOARD = "<F8>"
+KB_TAB_TABLE    = "<Control-Key-1>"
+KB_TAB_STATS    = "<Control-Key-2>"
+KB_TAB_RADICALS = "<Control-Key-3>"
+KB_TAB_GRAMMAR  = "<Control-Key-4>"
+KB_TAB_CONJ     = "<Control-Key-5>"
+KB_TAB_TRANS    = "<Control-Key-6>"
+KB_REVIEW_TODAY = "<Control-r>"
+KB_FLASHCARD    = "<F2>"
+KB_QUIZ         = "<F3>"
+KB_TYPING       = "<F4>"
+KB_BACKUP       = "<Control-b>"
+KB_SYNC         = "<F9>"
+KB_HELP         = "<F1>"
+KB_EDIT         = "<Return>"
+
+# Bảng phím tắt hiển thị trong hộp thoại "Phím tắt" (F1): (nhóm, [(phím, mô tả), ...])
+SHORTCUT_HELP = [
+    ("Chung", [
+        ("Ctrl + 1 / 2 / 3", "Chuyển tab Thư viện / Thống kê / Bộ thủ"),
+        ("Ctrl + 4 / 5 / 6", "Chuyển tab Ngữ pháp / Chia động từ / Bản dịch"),
+        ("Ctrl + N", "Thêm thẻ mới"),
+        ("Ctrl + F", "Tìm kiếm"),
+        ("F5", "Tải lại dữ liệu"),
+        ("F1", "Mở bảng phím tắt này"),
+    ]),
+    ("Ôn tập & công cụ", [
+        ("Ctrl + R", "Ôn tập hôm nay (thẻ đến hạn)"),
+        ("F2 / F3 / F4", "Thẻ ghi nhớ / Quiz / Luyện gõ"),
+        ("F8", "Bật/tắt bàn phím ảo tiếng Nhật"),
+        ("F9", "Đồng bộ (Sync)"),
+        ("Ctrl + B", "Backup"),
+    ]),
+    ("Bảng thẻ", [
+        ("Enter / nhấp đúp", "Sửa thẻ đang chọn"),
+        ("Delete", "Xóa thẻ đang chọn"),
+        ("Ctrl + A", "Chọn tất cả"),
+        ("PageUp / PageDown", "Trang trước / sau"),
+    ]),
+    ("Trong form & hộp thoại", [
+        ("Ctrl + S", "Lưu thẻ (form thêm/sửa)"),
+        ("Esc", "Đóng hộp thoại"),
+    ]),
+    ("Khi ôn tập", [
+        ("Space / Enter", "Lật thẻ"),
+        ("← / →", "Chưa nhớ / Đã nhớ"),
+        ("1 – 4", "Chọn đáp án (Quiz)"),
+    ]),
+]
 
 # ── Limits ────────────────────────────────────────────────────────────────────
 MAX_CHARACTER_LEN  = 50
@@ -109,3 +178,20 @@ SETTING_LAST_TAB    = "last_tab"
 SETTING_PAGE_SIZE   = "page_size"
 SETTING_DETAIL_PANEL= "detail_panel"
 SETTING_COL_WIDTHS  = "column_widths"
+
+# ── Bộ icon cho Bộ thẻ / Danh mục (giống bản web: ICON_GROUPS) ─────────────────
+ICON_GROUPS = [
+    ('Học tập', '📁 📚 📖 📘 📗 📙 📕 📓 📒 📝 ✏️ 🖊️ 🎓 🏫 🧠 💡 🔍 🗂️ 📌 📎 🔖 🧾 📊 🗒️ 🧮 🔤 🔠 🔡 🈁 🈯 🈳 🈶 🈚 🈸 🈺 🈷️ 🉐 🉑 🀄'),
+    ('Nhật Bản', '🎌 🗾 🌸 🏯 ⛩️ 🗻 🍣 🍙 🍱 🍜 🍡 🍵 🎍 🎎 🎏 🎐 🎑 🎋 🎆 🎇 🧧 🎴 👘 🥋 🏮 🍶 🥢 🛕 🚄 🎭 🪷 🎨 ⛰️ 🐟 🦀 🌊'),
+    ('Đồ ăn', '🍎 🍊 🍋 🍌 🍉 🍇 🍓 🍑 🍒 🍍 🥝 🍅 🥕 🌽 🥔 🍆 🥦 🍞 🧀 🥚 🍳 🥞 🍗 🍖 🍔 🍟 🍕 🌭 🥪 🌮 🍝 🍲 🍛 🍤 🍦 🍩 🍪 🎂 🍰 🍫 🍬 ☕ 🥛 🍺 🍷 🧃'),
+    ('Thiên nhiên', '🌳 🌲 🌴 🌵 🌿 🍀 🍁 🍂 🍃 🌺 🌻 🌼 🌷 🌹 💐 🌾 ☀️ 🌙 ⭐ 🌟 ☁️ ⛅ 🌧️ ⛈️ ❄️ ☃️ 🌈 💧 🔥 🌍 🏔️ 🏖️ 🌋'),
+    ('Động vật', '🐶 🐱 🐭 🐹 🐰 🦊 🐻 🐼 🐨 🐯 🦁 🐮 🐷 🐸 🐵 🐔 🐧 🐦 🦆 🦉 🐺 🐴 🦄 🐝 🦋 🐌 🐞 🐢 🐍 🐙 🐠 🐬 🐳 🦈 🐘 🦒 🐇 🐿️'),
+    ('Con người', '👤 👥 👨 👩 🧑 👶 👴 👵 🙂 😀 😊 😍 🤔 😴 😭 😡 💪 👀 👂 👃 👄 🖐️ 👍 🙏 ❤️ 🦷 🦴 🧍 🏃 🚶 👋 ✋ 🤝'),
+    ('Nhà & đời sống', '🏠 🏢 🏥 🏦 🏪 🛒 🛏️ 🚪 🪑 🛁 🚿 🧹 🧺 👕 👗 👟 🎒 👜 👓 ⌚ 📱 💻 📷 🔑 💰 💳 ✉️ 📞 🕐 📅 🧴 🪥 🧼 💡'),
+    ('Du lịch', '🚗 🚕 🚌 🚆 🚲 🛵 ✈️ 🚢 🚀 🗺️ 🧭 ⛽ 🏨 🎫 🛂 🧳 🌏 🏝️ ⛺ 🚉 🚏 🗼 🗽 🎡 🎢'),
+    ('Công việc', '💼 🏭 🔧 🔨 ⚙️ 🧰 🖥️ ⌨️ 🖨️ 📈 📉 🗄️ 📋 📣 📢 ⚖️ 🔬 🧪 💊 ⚕️ 🩺 🏗️ 🚜 📦 🛠️'),
+    ('Giải trí', '⚽ 🏀 🎾 🏐 ⛳ 🏊 🚴 🎮 🎲 🎯 🎵 🎶 🎤 🎧 🎸 🎹 🥁 🎬 📺 🧩 ♟️ 🎁 🎉 🎈 📻 🎻 🎺'),
+    ('Biểu tượng', '⭐ 💎 🔥 ⚡ ❤️ 🧡 💛 💚 💙 💜 🖤 ✅ ❌ ❗ ❓ ♾️ 🔔 🔒 🏆 🥇 🎖️ 🚩 🔴 🟠 🟡 🟢 🔵 🟣 ⚫ ⚪ 🆕 🆗 🔰'),
+]
+ICON_GROUPS = [(name, icons.split()) for name, icons in ICON_GROUPS]
+DECK_ICONS = [i for _, group in ICON_GROUPS for i in group]

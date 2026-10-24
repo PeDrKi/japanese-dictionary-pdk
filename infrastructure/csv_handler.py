@@ -3,15 +3,21 @@ infrastructure/csv_handler.py — CSV import/export for cards.
 Moved from utils/ (Stage: utils/ cleanup) since this does real file I/O.
 """
 import csv, os
-from domain.validators import normalize_multi_reading, truncate
+from domain.validators import normalize_multi_reading, truncate, normalize_pos
 from constants import (
     MAX_CHARACTER_LEN, MAX_READING_LEN, MAX_MEANING_LEN,
     MAX_EXAMPLE_LEN, MAX_NOTES_LEN, MAX_SOURCE_LEN,
 )
 
+def _norm_status(v):
+    """Trạng thái lạ → 'new' (giống web; tránh vi phạm CHECK khi đồng bộ lên đám mây)."""
+    v = (v or "").strip().lower()
+    return v if v in ("new", "learning", "known") else "new"
+
+
 FIELDS = ["type","character","reading_on","reading_kun","reading_kana","reading_hanviet",
           "romaji","meaning_vi","meaning_en","example_jp","example_vi",
-          "stroke_count","jlpt_level","status","is_favorite","source","notes"]
+          "stroke_count","jlpt_level","status","is_favorite","source","notes","pos"]
 
 
 def export_csv(cards, filepath):
@@ -59,11 +65,12 @@ def import_csv(filepath):
                     "example_jp":   truncate(_s(row, "example_jp"), MAX_EXAMPLE_LEN) or None,
                     "example_vi":   truncate(_s(row, "example_vi"), MAX_EXAMPLE_LEN) or None,
                     "stroke_count": _int(row.get("stroke_count")),
-                    "jlpt_level":   _s(row, "jlpt_level").upper() or None,
-                    "status":       _s(row, "status", "new") or "new",
+                    "jlpt_level":   (_s(row, "jlpt_level").upper() if _s(row, "jlpt_level").upper() in ("N1", "N2", "N3", "N4", "N5") else None),
+                    "status":       _norm_status(_s(row, "status", "new")),
                     "is_favorite":  1 if _s(row, "is_favorite", "0") == "1" else 0,
                     "source":       truncate(_s(row, "source"), MAX_SOURCE_LEN) or None,
                     "notes":        truncate(_s(row, "notes"), MAX_NOTES_LEN) or None,
+                    "pos":          normalize_pos(_s(row, "pos")),
                     "audio_path": None, "image_path": None,
                 })
             except Exception as e:
@@ -80,7 +87,7 @@ def get_csv_template_path(folder):
                     "reading_kun":"あめ、あま","reading_kana":"","reading_hanviet":"vũ","romaji":"ame",
                     "meaning_vi":"mưa","meaning_en":"rain","example_jp":"雨が降る",
                     "example_vi":"Trời mưa","stroke_count":"8","jlpt_level":"N5",
-                    "status":"new","is_favorite":"0","source":"Minna no Nihongo","notes":""})
+                    "status":"new","is_favorite":"0","source":"Minna no Nihongo","notes":"","pos":""})
     return path
 
 

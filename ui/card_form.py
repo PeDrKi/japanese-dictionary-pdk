@@ -2,6 +2,7 @@
 card_form.py — Add / Edit card dialog.
 _build() is split into focused sub-builders for readability.
 """
+from ui.threadsafe import call_in_ui
 import customtkinter as ctk
 from tkinter import messagebox
 from database.models import DBError
@@ -14,14 +15,18 @@ from constants import (
     CARD_TYPES, CARD_STATUSES, JLPT_LEVELS_OPT,
     TYPE_KANJI, TYPE_VOCAB, TYPE_HIRAGANA, TYPE_KATAKANA, STATUS_NEW,
     KB_SAVE, KB_ESCAPE, MAX_CHARACTER_LEN, MAX_MEANING_LEN,
+    CARD_POS, POS_LABELS,
 )
 import logging
 
 logger = logging.getLogger(__name__)
 
 
+POS_NONE = "— chưa chọn —"
+_POS_BY_LABEL = {v: k for k, v in POS_LABELS.items()}
+
 class CardForm(ctk.CTkToplevel):
-    def __init__(self, master, card_service, on_save, card=None):
+    def __init__(self, master, card_service, on_save, card=None, preset=None):
         super().__init__(master)
         if card is not None and not isinstance(card, dict):
             card = None
@@ -39,6 +44,8 @@ class CardForm(ctk.CTkToplevel):
         self._build()
         if card:
             self._fill(card)
+        elif isinstance(preset, dict) and preset:
+            self._apply_preset(preset)
 
     # ── Top-level builder ─────────────────────────────────────────────────────
 
@@ -58,13 +65,96 @@ class CardForm(ctk.CTkToplevel):
         self._build_readings(scroll)       # dynamic — rebuilt on type change
         self._build_romaji(scroll)
         self._build_meanings(scroll)
-        self._build_examples(scroll)
-        self._build_meta(scroll)           # status, source, favorite
-        self._build_media(scroll)          # audio + image attachment
-        self._build_notes(scroll)
+        self._build_advanced(scroll)       # ví dụ, trạng thái, nguồn, media, ghi chú (thu gọn)
         self._build_buttons()
+        if not self.card:
+            self._wire_autofill()
 
     # ── Section builders ──────────────────────────────────────────────────────
+
+    def _build_advanced(self, scroll):
+        """Phần ít dùng được thu gọn khi thêm thẻ mới (giống web: 'Tùy chọn thêm')."""
+        self._adv_open = bool(self.card)
+        self._adv_btn = ctk.CTkButton(
+            scroll, text="", anchor="w", height=28, corner_radius=6,
+            fg_color=("gray85", "gray25"), hover_color=("gray78", "gray32"),
+            text_color=("gray20", "gray85"), font=ctk.CTkFont(size=12),
+            command=self._toggle_adv)
+        self._adv_btn.pack(fill="x", padx=20, pady=(12, 0))
+        self._adv_frame = ctk.CTkFrame(scroll, fg_color="transparent")
+        self._build_examples(self._adv_frame)
+        self._build_meta(self._adv_frame)
+        self._build_media(self._adv_frame)
+        self._build_notes(self._adv_frame)
+        self._apply_adv()
+
+    def _toggle_adv(self):
+        self._adv_open = not self._adv_open
+        self._apply_adv()
+
+    def _apply_adv(self):
+        if self._adv_open:
+            self._adv_frame.pack(fill="x", after=self._adv_btn)
+        else:
+            self._adv_frame.pack_forget()
+        self._adv_btn.configure(
+            text=("▼  Tùy chọn thêm" if self._adv_open else "▶  Tùy chọn thêm")
+                 + "  (ví dụ, trạng thái, nguồn, ảnh, ghi chú)")
+
+    # ── Tự điền từ Jisho khi gõ ký tự ─────────────────────────────────────────
+
+    def _wire_autofill(self):
+        self._af_job = None
+        self._af_seq = 0
+        self._af_filled = set()          # tên ô do tự điền (được phép ghi đè lại)
+        self.char_entry.bind("<KeyRelease>", self._af_schedule, add="+")
+
+    def _af_schedule(self, _e=None):
+        if self._af_job:
+            self.after_cancel(self._af_job)
+        self._af_job = self.after(650, self._af_run)
+
+    def _af_run(self):
+        self._af_job = None
+        word = self.char_entry.get().strip()
+        if not word or all(ord(c) < 128 for c in word):
+            return                       # chỉ tra khi có ký tự Nhật
+        self._af_seq += 1
+        seq = self._af_seq
+        jisho_api.search(word, lambda res, err: call_in_ui(
+            self, lambda: self._af_apply(seq, word, res, err)))
+
+    def _af_set(self, key, entry_widget, value):
+        """Chỉ điền ô đang trống hoặc ô do tự điền trước đó."""
+        if not value:
+            return
+        cur = entry_widget.get().strip()
+        if cur and key not in self._af_filled:
+            return
+        entry_widget.delete(0, "end")
+        entry_widget.insert(0, value)
+        self._af_filled.add(key)
+
+    def _af_apply(self, seq, word, results, error):
+        if seq != self._af_seq or error or not results:
+            return                       # kết quả cũ / lỗi: im lặng
+        if self.char_entry.get().strip() != word:
+            return
+        hit = next((r for r in results
+                    if isinstance(r, dict) and word in (r.get("word"), r.get("reading"))), None)
+        if not hit:
+            return
+        reading = hit.get("reading", "")
+        if self.type_var.get() != TYPE_KANJI and getattr(self, "kana_entry", None):
+            self._af_set("kana", self.kana_entry, reading)
+        self._af_set("en", self.meaning_en_entry, hit.get("meaning_en", "")[:MAX_MEANING_LEN])
+        if reading:
+            self._af_set("romaji", self.romaji_entry, kana_to_romaji(reading))
+        if hit.get("jlpt") in JLPT_LEVELS_OPT and not self.jlpt_var.get():
+            self.jlpt_var.set(hit["jlpt"])
+        if not self.source_entry.get().strip():
+            self.source_entry.insert(0, "Jisho.org")
+        self._jstatus.configure(text=f"✓ Tự điền: {word}", text_color="#4ECB85")
 
     def _build_jisho_bar(self):
         """Search bar shown only in add mode."""
@@ -104,6 +194,8 @@ class CardForm(ctk.CTkToplevel):
                      font=ctk.CTkFont(weight="bold")).grid(row=0, column=0, sticky="w")
         ctk.CTkLabel(row, text="Cấp JLPT",
                      font=ctk.CTkFont(weight="bold")).grid(row=0, column=1, sticky="w", padx=(20, 0))
+        ctk.CTkLabel(row, text="Từ loại",
+                     font=ctk.CTkFont(weight="bold")).grid(row=0, column=2, sticky="w", padx=(20, 0))
         self.type_var = ctk.StringVar(value=CARD_TYPES[0])
         self.jlpt_var = ctk.StringVar(value="")
         ctk.CTkOptionMenu(row, values=CARD_TYPES, variable=self.type_var,
@@ -111,6 +203,9 @@ class CardForm(ctk.CTkToplevel):
                           ).grid(row=1, column=0, sticky="w")
         ctk.CTkOptionMenu(row, values=JLPT_LEVELS_OPT, variable=self.jlpt_var,
                           width=120).grid(row=1, column=1, sticky="w", padx=(20, 0))
+        self.pos_var = ctk.StringVar(value=POS_NONE)
+        ctk.CTkOptionMenu(row, values=[POS_NONE] + [POS_LABELS[k] for k in CARD_POS], variable=self.pos_var,
+                          width=190).grid(row=1, column=2, sticky="w", padx=(20, 0))
 
     def _build_character(self, f):
         """Main character entry."""
@@ -316,6 +411,11 @@ class CardForm(ctk.CTkToplevel):
         self.example_vi_entry = ctk.CTkEntry(f, placeholder_text="VD: Trời đang mưa")
         self.example_vi_entry.pack(fill="x", padx=20)
 
+    @staticmethod
+    def _status_text(status, count):
+        from constants import STATUS_LABELS
+        return f"{STATUS_LABELS.get(status, status)} · {count} lần học"
+
     def _build_meta(self, f):
         """Status, source, and favorite fields."""
         row = ctk.CTkFrame(f, fg_color="transparent")
@@ -324,9 +424,9 @@ class CardForm(ctk.CTkToplevel):
                      font=ctk.CTkFont(weight="bold")).grid(row=0, column=0, sticky="w")
         ctk.CTkLabel(row, text="Nguồn",
                      font=ctk.CTkFont(weight="bold")).grid(row=0, column=1, sticky="w", padx=(20, 0))
-        self.status_var = ctk.StringVar(value="new")
-        ctk.CTkOptionMenu(row, values=CARD_STATUSES, variable=self.status_var,
-                          width=150).grid(row=1, column=0, sticky="w")
+        self.status_var = ctk.StringVar(value="new")      # chỉ hiển thị: trạng thái tự tính theo số lần học khi ôn tập
+        self._status_lbl = ctk.CTkLabel(row, text=self._status_text("new", 0), anchor="w", width=150)
+        self._status_lbl.grid(row=1, column=0, sticky="w")
         self.source_entry = ctk.CTkEntry(row, placeholder_text="Sách, anime...", width=220)
         self.source_entry.grid(row=1, column=1, sticky="w", padx=(20, 0))
 
@@ -403,8 +503,7 @@ class CardForm(ctk.CTkToplevel):
         translate_api.suggest_vi(en_text, self._on_translate_result)
 
     def _on_translate_result(self, translation, error):
-        self.after(0, lambda: (self._show_translate_result(translation, error)
-                                if self.winfo_exists() else None))
+        call_in_ui(self, lambda: self._show_translate_result(translation, error))
 
     def _show_translate_result(self, translation, error):
         self._translate_btn.configure(state="normal")
@@ -439,7 +538,7 @@ class CardForm(ctk.CTkToplevel):
         jisho_api.search(kw, self._on_jisho_result)
 
     def _on_jisho_result(self, results, error):
-        self.after(0, lambda: (self._show_jisho_results(results, error) if self.winfo_exists() else None))
+        call_in_ui(self, lambda: self._show_jisho_results(results, error))
 
     def _show_jisho_results(self, results, error):
         self._jsearch_btn.configure(state="normal", text="Tìm")
@@ -539,6 +638,19 @@ class CardForm(ctk.CTkToplevel):
         self.meaning_vi_entry.focus_set()
         self._jstatus.configure(text=f"✓ Đã điền: {word}", text_color="#4ECB85")
 
+    def _apply_preset(self, p: dict):
+        """Thêm thẻ mới nhưng điền sẵn (vd từ bài đọc Bản dịch): chữ, nghĩa, câu ví dụ, nguồn; tự tra Jisho cho từ đó."""
+        self._fill({k: v for k, v in p.items() if k not in ("status", "study_count")})
+        if p.get("example_jp") or p.get("source"):
+            self._adv_open = True
+            self._apply_adv()
+        if p.get("character") and not p.get("meaning_vi"):
+            try:
+                self._jsearch_var.set(p["character"]); self._jisho_search()
+            except Exception:
+                pass
+        (self.meaning_vi_entry if not p.get("meaning_vi") else self.char_entry).focus_set()
+
     # ── Fill existing card (edit mode) ────────────────────────────────────────
 
     def _fill(self, c: dict):
@@ -547,6 +659,7 @@ class CardForm(ctk.CTkToplevel):
         self.type_var.set(c.get("type", TYPE_VOCAB))
         self._build_readings(prefill=c)
         self.jlpt_var.set(c.get("jlpt_level") or "")
+        self.pos_var.set(POS_LABELS.get(c.get("pos"), POS_NONE))
         self.char_entry.insert(0, c.get("character", ""))
         self.romaji_entry.insert(0, c.get("romaji", "") or "")
         self.meaning_vi_entry.insert(0, c.get("meaning_vi", "") or "")
@@ -554,6 +667,7 @@ class CardForm(ctk.CTkToplevel):
         self.example_jp_entry.insert(0, c.get("example_jp", "") or "")
         self.example_vi_entry.insert(0, c.get("example_vi", "") or "")
         self.status_var.set(c.get("status", "new"))
+        self._status_lbl.configure(text=self._status_text(c.get("status", "new"), c.get("study_count") or 0))
         self.source_entry.insert(0, c.get("source", "") or "")
         self.fav_var.set(bool(c.get("is_favorite", 0)))
         if c.get("notes"):
@@ -626,7 +740,8 @@ class CardForm(ctk.CTkToplevel):
             example_vi=self.example_vi_entry.get().strip(),
             stroke_count=self._get_stroke_count(),
             jlpt_level=self.jlpt_var.get(),
-            status=self.status_var.get(),
+            pos=_POS_BY_LABEL.get(self.pos_var.get()),
+            status=self.status_var.get(),     # chỉ dùng khi thêm thẻ mới (=new); sửa thẻ không đổi trạng thái
             is_favorite=self.fav_var.get(),
             source=self.source_entry.get().strip(),
             notes=self.notes_text.get("1.0", "end-1c").strip(),

@@ -41,5 +41,5 @@ def test_log_study_incorrect_resets_interval(services):
     study.log_study(card_id, "incorrect")
 
     card = cards.get(card_id)
-    assert card["status"] == "learning"
+    assert card["status"] == "known" and card["study_count"] == 21   # 20 + 2 đúng − 1 sai
     assert card["srs_interval"] == 1

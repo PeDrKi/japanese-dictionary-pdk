@@ -1,6 +1,7 @@
 import customtkinter as ctk
 import random
 from ui.tooltip import Tooltip
+from ui import launcher_prefs
 from constants import (
     CARD_TYPES, CARD_STATUSES, JLPT_LEVELS, JLPT_LEVELS_OPT,
     TYPE_LABELS, TYPE_LABELS_FULL, STATUS_COLORS, STATUS_LABELS,
@@ -350,7 +351,7 @@ class FlashcardLauncher(ctk.CTkToplevel):
             r = ctk.CTkFrame(parent, fg_color="transparent")
             r.pack(fill="x", padx=16, pady=6)
             r.grid_columnconfigure(1, weight=1)
-            ctk.CTkLabel(r, text=label, width=80,
+            ctk.CTkLabel(r, text=label, width=92,
                          font=ctk.CTkFont(size=12), anchor="w").grid(row=0,column=0,sticky="w")
             w = widget_fn(r)
             w.grid(row=0, column=1, sticky="ew", padx=(8,0))
@@ -369,9 +370,9 @@ class FlashcardLauncher(ctk.CTkToplevel):
                                                         variable=self._type_var))
         row(f, "JLPT",     lambda p: ctk.CTkOptionMenu(p, values=["Tất cả","N5","N4","N3","N2","N1"],
                                                         variable=self._jlpt_var))
-        row(f, "Status",   lambda p: ctk.CTkOptionMenu(p, values=["Tất cả","new","learning","known"],
+        row(f, "Trạng thái",   lambda p: ctk.CTkOptionMenu(p, values=["Tất cả","new","learning","known"],
                                                         variable=self._status_var))
-        row(f, "Deck",     lambda p: ctk.CTkOptionMenu(p, values=["Tất cả"] + list(self._deck_name_to_id),
+        row(f, "Bộ thẻ",     lambda p: ctk.CTkOptionMenu(p, values=["Tất cả"] + list(self._deck_name_to_id),
                                                         variable=self._deck_var))
         row(f, "Số thẻ",   lambda p: ctk.CTkOptionMenu(p, values=["10","20","30","50","Tất cả"],
                                                         variable=self._limit_var))
@@ -387,6 +388,10 @@ class FlashcardLauncher(ctk.CTkToplevel):
         Tooltip(due_cb, "Chỉ lấy các thẻ đã đến lịch ôn lại (SRS), "
                         "bỏ qua thẻ vừa ôn gần đây và chưa cần ôn lại.")
 
+        self._prefs_vars = {'type': self._type_var, 'jlpt': self._jlpt_var, 'status': self._status_var, 'deck': self._deck_var, 'limit': self._limit_var, 'due': self._due_var}
+        launcher_prefs.restore('flashcard', self._prefs_vars,
+                               allowed={'deck': ['Tất cả'] + list(self._deck_name_to_id)},
+                               skip=('due',) if self._default_due_only else ())
         for var in [self._type_var, self._jlpt_var, self._status_var, self._deck_var,
                     self._limit_var, self._due_var]:
             var.trace_add("write", lambda *_: self._update_count())
@@ -418,5 +423,6 @@ class FlashcardLauncher(ctk.CTkToplevel):
         cards = self._get_cards()
         if not cards:
             return
+        launcher_prefs.save('flashcard', self._prefs_vars)
         self.destroy()
         FlashcardView(self.master, cards, self._study_service)

@@ -211,22 +211,54 @@ def test_log_study_correct_progresses_new_to_learning(fresh_db):
     assert models.get_card_by_id(card_id)["status"] == "learning"
 
 
-def test_log_study_correct_progresses_learning_to_known(fresh_db):
-    card_id = models.add_card(card_payload(status="learning"))
+def test_log_study_counts_up_and_known_at_20(fresh_db):
+    card_id = models.add_card(card_payload(status="new"))
+    for i in range(1, 20):
+        models.log_study(card_id, "correct")
+        c = models.get_card_by_id(card_id)
+        assert c["study_count"] == i and c["status"] == "learning"
     models.log_study(card_id, "correct")
-    assert models.get_card_by_id(card_id)["status"] == "known"
+    c = models.get_card_by_id(card_id)
+    assert c["study_count"] == 20 and c["status"] == "known"
 
 
-def test_log_study_incorrect_regresses_known_to_learning(fresh_db):
-    card_id = models.add_card(card_payload(status="known"))
+def test_log_study_incorrect_subtracts_one_and_stops_at_zero(fresh_db):
+    card_id = models.add_card(card_payload(status="known"))        # known → 20 lần
     models.log_study(card_id, "incorrect")
-    assert models.get_card_by_id(card_id)["status"] == "learning"
+    c = models.get_card_by_id(card_id)
+    assert (c["study_count"], c["status"]) == (19, "learning")
+    c2 = models.add_card(card_payload(character="犬", status="learning"))  # learning → 1 lần
+    models.log_study(c2, "incorrect")
+    assert (models.get_card_by_id(c2)["study_count"], models.get_card_by_id(c2)["status"]) == (0, "new")
+    models.log_study(c2, "incorrect")                                  # không xuống dưới 0
+    assert models.get_card_by_id(c2)["study_count"] == 0
 
 
-def test_log_study_incorrect_resets_learning_to_new(fresh_db):
-    card_id = models.add_card(card_payload(status="learning"))
-    models.log_study(card_id, "incorrect")
-    assert models.get_card_by_id(card_id)["status"] == "new"
+def test_status_edit_does_not_touch_study_count(fresh_db):
+    card_id = models.add_card(card_payload(status="new"))
+    for _ in range(3):
+        models.log_study(card_id, "correct")
+    data = dict(models.get_card_by_id(card_id)); data["status"] = "known"; data["meaning_vi"] = "sửa"
+    models.update_card(card_id, data)
+    c = models.get_card_by_id(card_id)
+    assert (c["study_count"], c["status"], c["meaning_vi"]) == (3, "learning", "sửa")
+
+
+def test_migration_backfills_study_count_from_history(tmp_path, monkeypatch):
+    import sqlite3
+    from database import db as dbmod
+    path = str(tmp_path / "old.db")
+    monkeypatch.setattr(dbmod, "DB_PATH", path)
+    dbmod.init_db()
+    c = sqlite3.connect(path)
+    c.execute("INSERT INTO cards (id,type,character,meaning_vi,status) VALUES ('a','vocab','a','a','known'),('b','vocab','b','b','new'),('c','vocab','c','c','learning')")
+    for i, r in enumerate(["correct", "correct", "incorrect", "correct"]):
+        c.execute("INSERT INTO study_sessions (id,card_id,result,studied_at) VALUES (?, 'b', ?, ?)", (f"s{i}", r, f"2026-01-0{i+1} 10:00:00"))
+    c.execute("ALTER TABLE cards DROP COLUMN study_count"); c.commit(); c.close()
+    dbmod.init_db()
+    c = sqlite3.connect(path)
+    got = dict(c.execute("SELECT id, study_count||'/'||status FROM cards").fetchall())
+    assert got == {"a": "20/known", "b": "2/learning", "c": "1/learning"}
 
 
 # ── SRS (spaced repetition) ──────────────────────────────────────────────────

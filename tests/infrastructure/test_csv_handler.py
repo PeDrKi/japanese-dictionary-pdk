@@ -101,3 +101,10 @@ def test_export_then_import_roundtrip(tmp_path):
     assert errors == []
     assert valid[0]["character"] == "犬"
     assert valid[0]["meaning_vi"] == "con chó"
+
+
+def test_import_unknown_status_coerced_to_new(tmp_path):
+    path = _write_csv(tmp_path, "type,character,meaning_vi,status\nvocab,雨,mưa,Mastered\nvocab,水,nước,KNOWN\n")
+    valid, errors = import_csv(path)
+    assert not errors
+    assert [r["status"] for r in valid] == ["new", "known"]

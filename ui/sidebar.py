@@ -1,4 +1,5 @@
 import customtkinter as ctk
+from ui.icon_picker import IconPickerField
 import tkinter as tk
 import logging
 from constants import (
@@ -319,8 +320,8 @@ class DeckDialog(ctk.CTkToplevel):
         self._deck_service = deck_service
         self.on_save = on_save
         self.title("Thêm Bộ Thẻ Mới")
-        self.geometry("360x420")
-        self.minsize(360, 380)
+        self.geometry("420x440")
+        self.minsize(420, 400)
         self.resizable(True, True)
         self.grab_set()
         self.lift(); self.focus_force()
@@ -353,12 +354,8 @@ class DeckDialog(ctk.CTkToplevel):
                           variable=self.cat_var).pack(fill="x", padx=20)
 
         ctk.CTkLabel(self, text="Icon").pack(anchor="w", **p)
-        icon_f = ctk.CTkFrame(self, fg_color="transparent")
-        icon_f.pack(fill="x", padx=20)
         self.icon_var = ctk.StringVar(value=self.ICONS[0])
-        for icon in self.ICONS:
-            ctk.CTkRadioButton(icon_f, text=icon, variable=self.icon_var,
-                               value=icon, width=44).pack(side="left", padx=1)
+        IconPickerField(self, self.icon_var).pack(fill="x", padx=20)
 
         ctk.CTkLabel(self, text="Màu sắc").pack(anchor="w", **p)
         color_f = ctk.CTkFrame(self, fg_color="transparent")
@@ -399,7 +396,7 @@ class EditDeckDialog(ctk.CTkToplevel):
         self.deck    = deck
         self.on_save = on_save
         self.title("✏️  Sửa bộ thẻ")
-        self.geometry("380x460")
+        self.geometry("420x460")
         self.minsize(380, 420)
         self.resizable(True, True)
         self.grab_set()
@@ -436,12 +433,8 @@ class EditDeckDialog(ctk.CTkToplevel):
                           variable=self.cat_var).pack(fill="x", padx=20)
 
         ctk.CTkLabel(self, text="Icon").pack(anchor="w", **p)
-        icon_f = ctk.CTkFrame(self, fg_color="transparent")
-        icon_f.pack(fill="x", padx=20)
         self.icon_var = ctk.StringVar(value=self.deck.get("icon", "📁"))
-        for icon in self.ICONS:
-            ctk.CTkRadioButton(icon_f, text=icon, variable=self.icon_var,
-                               value=icon, width=44).pack(side="left", padx=1)
+        IconPickerField(self, self.icon_var).pack(fill="x", padx=20)
 
         ctk.CTkLabel(self, text="Màu sắc").pack(anchor="w", **p)
         color_f = ctk.CTkFrame(self, fg_color="transparent")
@@ -493,8 +486,8 @@ class CategoryDialog(ctk.CTkToplevel):
         self.category = category
         self.on_save  = on_save
         self.title("✏️  Sửa danh mục" if category else "🗂️  Thêm danh mục mới")
-        self.geometry("340x260")
-        self.minsize(340, 240)
+        self.geometry("420x260")
+        self.minsize(420, 240)
         self.resizable(True, True)
         self.grab_set()
         self.lift(); self.focus_force()
@@ -510,14 +503,9 @@ class CategoryDialog(ctk.CTkToplevel):
         self.name_entry.pack(fill="x", **p)
 
         ctk.CTkLabel(self, text="Icon").pack(anchor="w", **p)
-        icon_f = ctk.CTkFrame(self, fg_color="transparent")
-        icon_f.pack(fill="x", padx=20)
         default_icon = self.category.get("icon", self.ICONS[0]) if self.category else self.ICONS[0]
         self.icon_var = ctk.StringVar(value=default_icon)
-        for i, icon in enumerate(self.ICONS):
-            ctk.CTkRadioButton(icon_f, text=icon, variable=self.icon_var,
-                               value=icon, width=44
-                               ).grid(row=i // 6, column=i % 6, padx=1, pady=2)
+        IconPickerField(self, self.icon_var).pack(fill="x", padx=20)
 
         btn_row = ctk.CTkFrame(self, fg_color="transparent")
         btn_row.pack(fill="x", padx=20, pady=(20, 8))

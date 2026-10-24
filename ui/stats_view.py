@@ -1,3 +1,4 @@
+from ui.threadsafe import call_in_ui
 import customtkinter as ctk
 import threading
 import logging
@@ -84,8 +85,7 @@ class StatsView(ctk.CTkFrame):
                 logger.warning(f"Failed to load stats, falling back to cache: {e}")
                 s = self._cached_stats or {}
             # Update UI from main thread
-            if self.winfo_exists():
-                self.after(0, lambda: self._render_data(s))
+            call_in_ui(self, lambda: self._render_data(s))
         threading.Thread(target=_fetch, daemon=True).start()
 
     def _show_loading(self):

@@ -17,7 +17,7 @@ from ui.toolbar import Toolbar
 from ui.bulk_actions import BulkBar
 from ui.undo_toast import UndoToast
 from constants import (
-    TYPE_LABELS, KB_DELETE, KB_SELECT_ALL,
+    TYPE_LABELS, POS_SHORT, KB_DELETE, KB_SELECT_ALL,
     SETTING_COL_WIDTHS, SETTING_DETAIL_PANEL, SETTING_PAGE_SIZE,
 )
 from infrastructure import settings
@@ -29,17 +29,18 @@ logger = logging.getLogger(__name__)
 
 # ── Column definitions ────────────────────────────────────────────────────────
 COLUMNS = [
-    ("stt",           "STT",       50,  False),
-    ("type",         "Loại",      55,  True),
+    ("stt",           "STT",       44,  False),
+    ("type",         "Loại",      45,  True),
     ("character",    "Ký tự",     90,  True),
-    ("reading_on",   "On-yomi",   100, True),
-    ("reading_kun",  "Kun-yomi",  110, True),
-    ("reading_kana", "Kana",      100, True),
+    ("reading_on",   "On-yomi",   64,  True),
+    ("reading_kun",  "Kun-yomi",  64,  True),
+    ("reading_kana", "Kana",      90,  True),
     ("reading_hanviet", "Hán Việt", 100, True),
     ("romaji",       "Romaji",    100, True),
-    ("meaning_vi",   "Nghĩa VN",  160, True),
+    ("meaning_vi",   "Nghĩa VN",  140, True),
     ("jlpt_level",   "JLPT",      50,  True),
-    ("status",       "Status",    80,  True),
+    ("pos",          "Từ loại",   85,  True),
+    ("status",       "Trạng thái",    62,  True),
     ("is_favorite",  "★",         35,  True),
     ("source",       "Nguồn",     100, True),
     ("created_at",   "Ngày thêm", 95,  True),
@@ -111,6 +112,8 @@ class TableView(ctk.CTkFrame):
             self.tree.column(cid, width=w, minwidth=30,
                              stretch=tk.YES if stretch else tk.NO,
                              anchor="center")
+        # Thứ tự HIỂN THỊ: cột quan trọng (ký tự → cách đọc → nghĩa → từ loại → JLPT) nằm đầu để thấy ngay không cần cuộn ngang
+        self._apply_visible_columns()
         self.tree.column("meaning_vi",  anchor="w")
         self.tree.column("reading_kun", anchor="w")
         self.tree.column("reading_on",  anchor="center")
@@ -129,6 +132,7 @@ class TableView(ctk.CTkFrame):
         self.tree.bind("<Double-1>",          lambda _: self._edit_selected())
         self.tree.bind("<Button-3>",          self._right_click)
         self.tree.bind(KB_DELETE,             lambda _: self._delete_selected())
+        self.tree.bind("<Return>",            lambda _: self._edit_selected())
         self.tree.bind(KB_SELECT_ALL,         self._select_all)
         self.tree.bind("<ButtonRelease-1>",   self._on_col_resize)
 
@@ -252,6 +256,7 @@ class TableView(ctk.CTkFrame):
         kw = dict(
             search        = search,
             jlpt_filter   = jlpt,
+            pos_filter    = tb.pos,
             status_filter = status,
             type_filter   = effective_type,
             favorite_only = fav_only,
@@ -312,6 +317,7 @@ class TableView(ctk.CTkFrame):
                 c.get("romaji")       or "",
                 c.get("meaning_vi")   or "",
                 c.get("jlpt_level")   or "",
+                POS_SHORT.get(c.get("pos"), ""),
                 c.get("status")       or "",
                 "★" if c.get("is_favorite") else "",
                 c.get("source")       or "",
@@ -420,7 +426,45 @@ class TableView(ctk.CTkFrame):
         except DBError as e:
             messagebox.showerror("Lỗi", str(e))
 
+    # ── Cột hiển thị ──────────────────────────────────────────────────────────
+    # Thứ tự hiển thị: cột quan trọng (ký tự → cách đọc → nghĩa → từ loại → JLPT) nằm đầu.
+    _DISPLAY_ORDER = ["stt", "type", "character", "reading_kana", "reading_on", "reading_kun", "meaning_vi", "pos",
+                      "jlpt_level", "status", "is_favorite", "reading_hanviet", "romaji", "source", "created_at"]
+    _DEFAULT_HIDDEN = {"stt", "reading_hanviet", "romaji", "source", "created_at"}
+
+    def _visible_cols(self):
+        saved = settings.get("table_visible_cols", None)
+        if isinstance(saved, list):
+            vis = [c for c in self._DISPLAY_ORDER if c in saved]
+            if vis: return vis
+        return [c for c in self._DISPLAY_ORDER if c not in self._DEFAULT_HIDDEN]
+
+    def _apply_visible_columns(self):
+        self.tree.configure(displaycolumns=self._visible_cols())
+
+    def _toggle_column(self, cid):
+        vis = set(self._visible_cols())
+        if cid in vis:
+            if len(vis) <= 2: return
+            vis.discard(cid)
+        else:
+            vis.add(cid)
+        settings.set("table_visible_cols", [c for c in self._DISPLAY_ORDER if c in vis])
+        self._apply_visible_columns()
+
+    def _heading_menu(self, event):
+        m = tk.Menu(self, tearoff=0)
+        heads = {cid: h for cid, h, *_ in COLUMNS}
+        vis = set(self._visible_cols())
+        for cid in self._DISPLAY_ORDER:
+            var = tk.BooleanVar(value=cid in vis)
+            m.add_checkbutton(label=heads[cid], variable=var, command=lambda c=cid: self._toggle_column(c))
+        try: m.tk_popup(event.x_root, event.y_root)
+        finally: m.grab_release()
+
     def _right_click(self, event):
+        if self.tree.identify_region(event.x, event.y) == "heading":
+            return self._heading_menu(event)
         iid = self.tree.identify_row(event.y)
         if iid:
             self.tree.selection_set(iid)

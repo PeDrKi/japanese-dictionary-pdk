@@ -8,6 +8,7 @@ working unchanged for all existing callers.
 from datetime import datetime
 from ._common import get_connection, _db_op, _CARD_LIST_COLS
 from infrastructure.id_gen import uuid7
+from domain.srs import count_for_status, status_from_count
 
 
 # ── CARDS ─────────────────────────────────────────────────────────────────────
@@ -15,7 +16,7 @@ from infrastructure.id_gen import uuid7
 @_db_op
 def get_all_cards(type_filter=None, jlpt_filter=None, status_filter=None,
                   favorite_only=False, deck_id=None, search=None,
-                  include_deleted=False, due_only=False, limit=None, offset=0):
+                  include_deleted=False, due_only=False, limit=None, offset=0, pos_filter=None):
     conn   = get_connection()
     cur    = conn.cursor()
     params = []
@@ -34,6 +35,8 @@ def get_all_cards(type_filter=None, jlpt_filter=None, status_filter=None,
         conds.append("c.type = ?");        params.append(type_filter)
     if jlpt_filter:
         conds.append("c.jlpt_level = ?");  params.append(jlpt_filter)
+    if pos_filter:
+        conds.append("c.pos = ?");         params.append(pos_filter)
     if status_filter:
         conds.append("c.status = ?");      params.append(status_filter)
     if favorite_only:
@@ -68,7 +71,7 @@ def get_all_cards(type_filter=None, jlpt_filter=None, status_filter=None,
 
 @_db_op
 def count_cards(type_filter=None, jlpt_filter=None, status_filter=None,
-                favorite_only=False, deck_id=None, search=None, due_only=False):
+                favorite_only=False, deck_id=None, search=None, due_only=False, pos_filter=None):
     """Return total count matching filters (for pagination)."""
     conn   = get_connection()
     cur    = conn.cursor()
@@ -84,6 +87,8 @@ def count_cards(type_filter=None, jlpt_filter=None, status_filter=None,
         conds.append("c.type = ?");       params.append(type_filter)
     if jlpt_filter:
         conds.append("c.jlpt_level = ?"); params.append(jlpt_filter)
+    if pos_filter:
+        conds.append("c.pos = ?");        params.append(pos_filter)
     if status_filter:
         conds.append("c.status = ?");     params.append(status_filter)
     if favorite_only:
@@ -130,6 +135,8 @@ def get_card_by_id(card_id):
 
 @_db_op
 def add_card(data: dict):
+    """Thẻ mới: nếu dữ liệu mang trạng thái (CSV, thẻ mẫu…) thì suy ra số lần học tương ứng."""
+    count = int(data["study_count"]) if data.get("study_count") is not None else count_for_status(data.get("status") or "new")
     conn = get_connection()
     now  = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     cur  = conn.cursor()
@@ -137,13 +144,14 @@ def add_card(data: dict):
     cur.execute("""
         INSERT INTO cards (id,type,character,reading_on,reading_kun,reading_kana,reading_hanviet,
             romaji,meaning_vi,meaning_en,example_jp,example_vi,
-            stroke_count,jlpt_level,status,is_favorite,source,notes,
+            stroke_count,jlpt_level,status,study_count,is_favorite,source,notes,pos,
             audio_path,image_path,created_at,updated_at)
         VALUES (:id,:type,:character,:reading_on,:reading_kun,:reading_kana,:reading_hanviet,
             :romaji,:meaning_vi,:meaning_en,:example_jp,:example_vi,
-            :stroke_count,:jlpt_level,:status,:is_favorite,:source,:notes,
+            :stroke_count,:jlpt_level,:status,:study_count,:is_favorite,:source,:notes,:pos,
             :audio_path,:image_path,:created_at,:updated_at)
-    """, {"reading_hanviet": None, **data, "id": new_id, "created_at": now, "updated_at": now})
+    """, {"reading_hanviet": None, "pos": None, **data, "id": new_id, "created_at": now, "updated_at": now,
+          "study_count": count, "status": status_from_count(count)})
     conn.commit()
     return new_id
 
@@ -160,10 +168,10 @@ def update_card(card_id, data: dict):
             romaji=:romaji, meaning_vi=:meaning_vi, meaning_en=:meaning_en,
             example_jp=:example_jp, example_vi=:example_vi,
             stroke_count=:stroke_count, jlpt_level=:jlpt_level,
-            status=:status, is_favorite=:is_favorite, source=:source,
-            notes=:notes, updated_at=:updated_at
+            is_favorite=:is_favorite, source=:source,
+            notes=:notes, pos=:pos, updated_at=:updated_at
         WHERE id=:id
-    """, {"reading_hanviet": None, **data, "id": card_id, "updated_at": now})
+    """, {"reading_hanviet": None, "pos": None, **data, "id": card_id, "updated_at": now})
     conn.commit()
 
 
@@ -176,7 +184,7 @@ def soft_delete_card(card_id: int):
         return None
     snapshot = dict(row)
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    conn.execute("UPDATE cards SET deleted_at=? WHERE id=?", (now, card_id))
+    conn.execute("UPDATE cards SET deleted_at=?, updated_at=? WHERE id=?", (now, now, card_id))
     conn.commit()
     return snapshot
 
@@ -185,7 +193,7 @@ def soft_delete_card(card_id: int):
 def restore_card(card_id: int):
     """Restore a soft-deleted card."""
     conn = get_connection()
-    conn.execute("UPDATE cards SET deleted_at=NULL WHERE id=?", (card_id,))
+    conn.execute("UPDATE cards SET deleted_at=NULL, updated_at=datetime('now','localtime') WHERE id=?", (card_id,))
     conn.commit()
 
 
@@ -210,7 +218,7 @@ def get_deleted_cards():
 @_db_op
 def toggle_favorite(card_id):
     conn = get_connection()
-    conn.execute("UPDATE cards SET is_favorite = 1 - is_favorite WHERE id=?", (card_id,))
+    conn.execute("UPDATE cards SET is_favorite = 1 - is_favorite, updated_at=datetime('now','localtime') WHERE id=?", (card_id,))
     conn.commit()
 
 
@@ -233,27 +241,30 @@ def find_duplicates(character: str, card_type: str, exclude_id: int = None):
 
 @_db_op
 def bulk_update_status(ids: list, status: str):
-    """Set status for multiple cards at once."""
+    """Đặt trạng thái cho nhiều thẻ: quy ra số lần học (chưa học 0 · đang học 1 · đã nhớ 20) để trạng thái luôn khớp số lần học."""
     if not ids:
         return
     conn = get_connection()
-    conn.execute(
-        f"UPDATE cards SET status=? WHERE id IN ({','.join('?'*len(ids))})",
-        [status] + list(ids)
-    )
+    for cid in ids:
+        row = conn.execute("SELECT study_count FROM cards WHERE id=?", (cid,)).fetchone()
+        n = count_for_status(status, row[0] if row else 0)
+        conn.execute("UPDATE cards SET study_count=?, status=?, updated_at=datetime('now','localtime') WHERE id=?",
+                     (n, status_from_count(n), cid))
     conn.commit()
 
 
 @_db_op
 def bulk_toggle_favorite(ids: list):
-    """Toggle is_favorite for multiple cards at once."""
+    """Đặt/bỏ yêu thích cho nhiều thẻ (cả nhóm cùng một trạng thái)."""
     if not ids:
         return
     conn = get_connection()
+    ph = ','.join('?' * len(ids))
+    # Giống bản web: chọn lẫn lộn → đặt TẤT CẢ là yêu thích; chọn toàn thẻ đã yêu thích → bỏ hết
+    all_fav = conn.execute(f"SELECT COUNT(*)=0 FROM cards WHERE id IN ({ph}) AND is_favorite=0", list(ids)).fetchone()[0]
     conn.execute(
-        f"UPDATE cards SET is_favorite = 1 - is_favorite "
-        f"WHERE id IN ({','.join('?'*len(ids))})",
-        list(ids)
+        f"UPDATE cards SET is_favorite = ?, updated_at=datetime('now','localtime') WHERE id IN ({ph})",
+        [0 if all_fav else 1] + list(ids)
     )
     conn.commit()
 
@@ -271,8 +282,8 @@ def bulk_soft_delete(ids: list) -> list:
     ).fetchall()
     snapshots = [dict(r) for r in rows]
     conn.execute(
-        f"UPDATE cards SET deleted_at=? WHERE id IN ({','.join('?'*len(ids))})",
-        [now] + list(ids)
+        f"UPDATE cards SET deleted_at=?, updated_at=? WHERE id IN ({','.join('?'*len(ids))})",
+        [now, now] + list(ids)
     )
     conn.commit()
     return snapshots

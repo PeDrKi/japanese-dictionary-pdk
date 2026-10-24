@@ -36,6 +36,7 @@ import logging
 import tempfile
 from datetime import datetime
 from database.db import DB_PATH, init_db as _init_db_schema
+from infrastructure.id_gen import uuid7
 
 logger = logging.getLogger(__name__)
 
@@ -60,12 +61,16 @@ class SupabaseSync:
     def __init__(self, supabase_url: str, supabase_key: str,
                  bucket: str = DEFAULT_BUCKET,
                  remote_filename: str = DEFAULT_FILENAME,
-                 progress_cb=None):
+                 progress_cb=None,
+                 timeout: float = _TIMEOUT):
         self.supabase_url    = self._clean(supabase_url).rstrip("/")
         self.supabase_key    = self._clean(supabase_key)
         self.bucket           = self._clean(bucket)
         self.remote_filename  = self._clean(remote_filename)
         self.progress_cb     = progress_cb or (lambda msg: None)
+        # Cho phép rút ngắn timeout — dùng khi tự sync lúc đóng app (không
+        # nên để người dùng chờ quá lâu chỉ để thoát chương trình).
+        self._timeout         = timeout
         self._storage_base   = f"{self.supabase_url}/storage/v1"
         self._headers = {
             "apikey":        self.supabase_key,
@@ -197,7 +202,7 @@ class SupabaseSync:
                 url,
                 headers={**self._headers, "Content-Type": "application/json"},
                 json={"prefix": "", "search": self.remote_filename, "limit": 100},
-                timeout=_TIMEOUT,
+                timeout=self._timeout,
             )
         except httpx.RequestError as e:
             raise RuntimeError(f"Không kết nối được tới Supabase ({url}): {e}") from e
@@ -259,7 +264,7 @@ class SupabaseSync:
         url = self._lock_url()
 
         try:
-            resp = httpx.get(url, headers=self._headers, timeout=_TIMEOUT)
+            resp = httpx.get(url, headers=self._headers, timeout=self._timeout)
         except httpx.RequestError:
             return  # Lỗi mạng sẽ lộ rõ ở bước tiếp theo, không chặn ở đây.
 
@@ -282,9 +287,9 @@ class SupabaseSync:
         body = f"{device}|{datetime.utcnow().isoformat()}".encode("utf-8")
         headers = {**self._headers, "Content-Type": "text/plain", "x-upsert": "true"}
         try:
-            r = httpx.post(url, headers=headers, content=body, timeout=_TIMEOUT)
+            r = httpx.post(url, headers=headers, content=body, timeout=self._timeout)
             if r.status_code not in (200, 201):
-                httpx.put(url, headers=headers, content=body, timeout=_TIMEOUT)
+                httpx.put(url, headers=headers, content=body, timeout=self._timeout)
         except httpx.RequestError:
             pass  # Không tạo được khóa thì thôi, không chặn sync vì lý do này.
 
@@ -294,7 +299,7 @@ class SupabaseSync:
             httpx.request(
                 "DELETE", f"{self._storage_base}/object/{self.bucket}",
                 headers={**self._headers, "Content-Type": "application/json"},
-                json={"prefixes": [self._LOCK_FILENAME]}, timeout=_TIMEOUT)
+                json={"prefixes": [self._LOCK_FILENAME]}, timeout=self._timeout)
         except httpx.RequestError:
             pass  # Khóa sẽ tự hết hạn sau 5 phút dù xóa lỗi.
 
@@ -303,7 +308,7 @@ class SupabaseSync:
 
         url = self._object_url()
         try:
-            resp = httpx.get(url, headers=self._headers, timeout=_TIMEOUT)
+            resp = httpx.get(url, headers=self._headers, timeout=self._timeout)
         except httpx.RequestError as e:
             raise RuntimeError(f"Không kết nối được tới Supabase ({url}): {e}") from e
 
@@ -339,7 +344,7 @@ class SupabaseSync:
         url = self._object_url()
         method = httpx.put if upsert else httpx.post
         try:
-            resp = method(url, headers=headers, content=file_bytes, timeout=_TIMEOUT)
+            resp = method(url, headers=headers, content=file_bytes, timeout=self._timeout)
         except httpx.RequestError as e:
             raise RuntimeError(f"Không kết nối được tới Supabase ({url}): {e}") from e
 
@@ -398,6 +403,7 @@ class SupabaseSync:
             self._merge_table(local_conn, remote_conn, "cards", self._CARD_COLS,
                               immutable_cols=["type", "character", "created_at"],
                               stats=stats, label="thẻ")
+            self._merge_categories(local_conn, remote_conn)
             self._merge_table(local_conn, remote_conn, "decks", self._DECK_COLS,
                               immutable_cols=["created_at"],
                               stats=stats, label="bộ thẻ")
@@ -423,6 +429,28 @@ class SupabaseSync:
             remote_conn.close()
 
         return stats
+
+    # ── Danh mục bộ thẻ ──────────────────────────────────────────────────────
+    # Trước đây bảng này KHÔNG được đồng bộ → bộ thẻ kéo về mang category_id trỏ vào
+    # danh mục không tồn tại ở máy này. Gộp theo TÊN (name UNIQUE): thêm danh mục còn thiếu,
+    # rồi đổi category_id của các bộ thẻ phía remote sang id danh mục của máy này.
+    def _merge_categories(self, local, remote):
+        if not self._table_exists(remote, "deck_categories"):
+            return
+        local_by_name = {r["name"]: r["id"] for r in local.execute("SELECT id, name FROM deck_categories")}
+        id_map = {}
+        for r in remote.execute("SELECT id, name, icon, sort_order, created_at FROM deck_categories"):
+            lid = local_by_name.get(r["name"])
+            if lid is None:
+                local.execute(
+                    "INSERT OR IGNORE INTO deck_categories (id, name, icon, sort_order, created_at) VALUES (?,?,?,?,?)",
+                    (r["id"], r["name"], r["icon"], r["sort_order"], r["created_at"]))
+                lid = r["id"]
+            id_map[r["id"]] = lid
+        for d in remote.execute("SELECT id, category_id FROM decks WHERE category_id IS NOT NULL").fetchall():
+            new = id_map.get(d["category_id"])
+            if new is not None and new != d["category_id"]:
+                remote.execute("UPDATE decks SET category_id=? WHERE id=?", (new, d["id"]))
 
     # ── Merge theo id với xóa mềm + phát hiện trùng ID ───────────────────────
     #
@@ -528,8 +556,8 @@ class SupabaseSync:
             if existing is None:
                 local.execute(
                     "INSERT OR IGNORE INTO deck_cards "
-                    "(deck_id, card_id, added_at, updated_at, deleted_at) VALUES (?,?,?,?,?)",
-                    (local_deck_id, row["card_id"], row["added_at"],
+                    "(id, deck_id, card_id, added_at, updated_at, deleted_at) VALUES (?,?,?,?,?,?)",
+                    (uuid7(), local_deck_id, row["card_id"], row["added_at"],
                      row["updated_at"], row["deleted_at"])
                 )
             elif self._parse_ts(row["updated_at"]) > self._parse_ts(existing["updated_at"]):
@@ -566,8 +594,8 @@ class SupabaseSync:
             if existing is None:
                 local.execute(
                     "INSERT OR IGNORE INTO radical_cards "
-                    "(radical_id, card_id, added_at, updated_at, deleted_at) VALUES (?,?,?,?,?)",
-                    (local_radical_id, row["card_id"], row["added_at"],
+                    "(id, radical_id, card_id, added_at, updated_at, deleted_at) VALUES (?,?,?,?,?,?)",
+                    (uuid7(), local_radical_id, row["card_id"], row["added_at"],
                      row["updated_at"], row["deleted_at"])
                 )
             elif self._parse_ts(row["updated_at"]) > self._parse_ts(existing["updated_at"]):
@@ -628,8 +656,8 @@ class SupabaseSync:
                         (r["card_id"],)).fetchone():
                     local.execute(
                         "INSERT INTO study_sessions "
-                        "(card_id, result, studied_at) VALUES (?,?,?)",
-                        (r["card_id"], r["result"], r["studied_at"])
+                        "(id, card_id, result, studied_at) VALUES (?,?,?,?)",
+                        (uuid7(), r["card_id"], r["result"], r["studied_at"])
                     )
                     new_count += 1
         if new_count:
@@ -642,8 +670,9 @@ class SupabaseSync:
         "reading_hanviet",
         "romaji", "meaning_vi", "meaning_en", "example_jp", "example_vi",
         "stroke_count", "jlpt_level", "status", "is_favorite", "source",
-        "notes", "audio_path", "image_path", "created_at", "updated_at",
-        "deleted_at",
+        "notes", "audio_path", "image_path",
+        "srs_interval", "srs_ease", "srs_due_date",
+        "created_at", "updated_at", "deleted_at",
     ]
 
     _DECK_COLS = [

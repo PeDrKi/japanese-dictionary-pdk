@@ -18,7 +18,8 @@ from ._common import get_connection, _db_op
 from infrastructure.id_gen import uuid7
 from domain.srs import (
     compute_srs_update as _compute_srs_update,
-    next_status,
+    next_count,
+    status_from_count,
     SRS_MAX_INTERVAL_DAYS,
     SRS_MIN_EASE,
     SRS_MAX_EASE,
@@ -35,18 +36,19 @@ def log_study(card_id, result):
                  (uuid7(), card_id, result))
 
     row = conn.execute(
-        "SELECT status, srs_interval, srs_ease FROM cards WHERE id=?", (card_id,)
+        "SELECT study_count, srs_interval, srs_ease FROM cards WHERE id=?", (card_id,)
     ).fetchone()
-    current_status   = row["status"] if row else "new"
+    current_count    = row["study_count"] if row else 0
     current_interval = row["srs_interval"] if row else 1
     current_ease     = row["srs_ease"] if row else SRS_DEFAULT_EASE
 
-    new_status = next_status(current_status, result)
+    new_count  = next_count(current_count, result)
+    new_status = status_from_count(new_count)
     new_interval, new_ease = _compute_srs_update(current_interval, current_ease, result)
 
     conn.execute(
-        "UPDATE cards SET status=?, srs_interval=?, srs_ease=?, "
-        "srs_due_date=date('now','localtime', ?) WHERE id=?",
-        (new_status, new_interval, new_ease, f"+{new_interval} day", card_id)
+        "UPDATE cards SET study_count=?, status=?, srs_interval=?, srs_ease=?, "
+        "srs_due_date=date('now','localtime', ?), updated_at=datetime('now','localtime') WHERE id=?",
+        (new_count, new_status, new_interval, new_ease, f"+{new_interval} day", card_id)
     )
     conn.commit()

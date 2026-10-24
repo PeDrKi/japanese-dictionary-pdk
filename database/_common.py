@@ -55,7 +55,7 @@ def close_thread_connection():
 # Specific columns for card list (avoids transferring unused blob fields)
 _CARD_LIST_COLS = (
     "c.id, type, character, reading_on, reading_kun, reading_kana, reading_hanviet, romaji, "
-    "meaning_vi, meaning_en, jlpt_level, status, is_favorite, source, "
+    "meaning_vi, meaning_en, jlpt_level, pos, status, study_count, is_favorite, source, "
     "created_at, example_jp, example_vi, stroke_count, "
     "srs_interval, srs_due_date, srs_ease, audio_path, image_path"
 )
